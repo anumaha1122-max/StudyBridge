@@ -1,217 +1,165 @@
 import React, { useState } from "react";
-import {
-  SafeAreaView,
-  ScrollView,
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Text, StyleSheet } from "react-native";
 import { COLORS } from "../../utils/colors";
 import { useApp } from "../../context/AppContext";
-import AppHeader from "../../components/AppHeader";
 import AppInput from "../../components/AppInput";
 import AppButton from "../../components/AppButton";
 import SuccessModal from "../../components/SuccessModal";
+import TimetableCard from "../../components/TimetableCard";
+import FormScreenWrapper, {
+  FormCard,
+  FormSectionTitle,
+  ChipGroup,
+  InfoBox,
+} from "../../components/FormScreenWrapper";
 
 export default function ManageTimetableScreen({ navigation }) {
   const app = useApp();
-  const [success, setSuccess] = useState("");
-  
+
   const [form, setForm] = useState({
-    classId: 1,
     day: "Monday",
+    className: "Class 10",
     period: "",
     subject: "",
     teacher: "",
-    room: "",
     time: "",
+    room: "",
   });
 
-  const add = () => {
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const timetable = app.timetable || [];
+
+  const update = (key, value) => setForm({ ...form, [key]: value });
+
+  const submit = () => {
     if (!form.period || !form.subject || !form.time) {
-      setSuccess("Please enter period, subject and time.");
+      setError("Please fill period, subject and time.");
       return;
     }
 
-    app.createTimetablePeriod({
-      ...form,
-      period: Number(form.period),
-    });
+    if (app.addTimetable) {
+      app.addTimetable(form);
+    }
 
-    setForm({ classId: 1, day: "Monday", period: "", subject: "", teacher: "", room: "", time: "" });
-    setSuccess("Timetable period added.");
+    setError("");
+    setSuccess("Timetable period added successfully.");
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <AppHeader title="Manage Timetable" navigation={navigation} />
+    <FormScreenWrapper
+      title="Manage Timetable"
+      subtitle="Create and update school class schedule."
+      icon="time-outline"
+      color={COLORS.primary}
+      navigation={navigation}
+    >
+      <FormCard>
+        <FormSectionTitle
+          title="Add Period"
+          subtitle="Create class timetable period with subject and teacher."
+        />
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
-          <Text style={styles.heroTitle}>Timetable</Text>
-          <Text style={styles.heroSub}>Create period-wise timetable for classes.</Text>
-        </View>
+        {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <View style={styles.form}>
-          <AppInput label="Day" value={form.day} onChangeText={(v) => setForm({ ...form, day: v })} />
-          <AppInput label="Period Number" value={form.period} onChangeText={(v) => setForm({ ...form, period: v })} keyboardType="numeric" />
-          <AppInput label="Subject" value={form.subject} onChangeText={(v) => setForm({ ...form, subject: v })} />
-          <AppInput label="Teacher" value={form.teacher} onChangeText={(v) => setForm({ ...form, teacher: v })} />
-          <AppInput label="Room" value={form.room} onChangeText={(v) => setForm({ ...form, room: v })} />
-          <AppInput label="Time" value={form.time} onChangeText={(v) => setForm({ ...form, time: v })} placeholder="09:00 - 09:45" />
-          <AppButton title="Add Period" onPress={add} />
-        </View>
+        <Text style={styles.label}>Day</Text>
+        <ChipGroup
+          value={form.day}
+          onChange={(v) => update("day", v)}
+          options={["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]}
+        />
 
-        <Text style={styles.sectionTitle}>Timetable</Text>
+        <Text style={styles.label}>Class</Text>
+        <ChipGroup
+          value={form.className}
+          onChange={(v) => update("className", v)}
+          options={["Class 6", "Class 7", "Class 8", "Class 9", "Class 10"]}
+        />
 
-        {app.timetable.map((item) => (
-          <AdminCard
-            key={item.id}
-            title={item.subject}
-            subtitle={item.day + " • Period " + item.period + " • " + item.time + " • " + item.teacher}
-            status={item.room || "ROOM"}
-            icon="time-outline"
+        <AppInput
+          label="Period Number"
+          value={form.period}
+          onChangeText={(v) => update("period", v)}
+          placeholder="Example: 1"
+          keyboardType="numeric"
+        />
+
+        <AppInput
+          label="Subject"
+          value={form.subject}
+          onChangeText={(v) => update("subject", v)}
+          placeholder="Example: Mathematics"
+        />
+
+        <AppInput
+          label="Teacher"
+          value={form.teacher}
+          onChangeText={(v) => update("teacher", v)}
+          placeholder="Example: Mr. Kumar"
+        />
+
+        <AppInput
+          label="Time"
+          value={form.time}
+          onChangeText={(v) => update("time", v)}
+          placeholder="Example: 09:00 AM - 09:45 AM"
+        />
+
+        <AppInput
+          label="Room"
+          value={form.room}
+          onChangeText={(v) => update("room", v)}
+          placeholder="Example: Room 101"
+        />
+
+        <InfoBox text="Timetable will be visible to student, teacher and parent portals." />
+
+        <AppButton title="Add Period" onPress={submit} />
+      </FormCard>
+
+      <FormCard>
+        <FormSectionTitle
+          title="Current Timetable"
+          subtitle="Recently added periods."
+        />
+
+        {timetable.length === 0 ? (
+          <InfoBox
+            color={COLORS.muted}
+            text="No timetable periods added yet."
           />
-        ))}
+        ) : (
+          timetable.slice(0, 8).map((item) => (
+            <TimetableCard key={item.id} item={item} />
+          ))
+        )}
+      </FormCard>
 
-        <SuccessModal visible={!!success} title="Timetable" message={success} onClose={() => setSuccess("")} />
-      </ScrollView>
-    </SafeAreaView>
+      <SuccessModal
+        visible={!!success}
+        title="Timetable"
+        message={success}
+        onClose={() => setSuccess("")}
+      />
+    </FormScreenWrapper>
   );
-
 }
 
-const AdminCard = ({ title, subtitle, status, icon = "document-text-outline", children }) => (
-  <View style={styles.card}>
-    <View style={styles.cardTop}>
-      <View style={styles.iconBox}>
-        <Ionicons name={icon} size={22} color={COLORS.primary} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.cardTitle}>{title}</Text>
-        {subtitle ? <Text style={styles.cardSub}>{subtitle}</Text> : null}
-      </View>
-      {status ? <Text style={styles.badge}>{status}</Text> : null}
-    </View>
-    {children ? <View style={{ marginTop: 12 }}>{children}</View> : null}
-  </View>
-);
-
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  content: {
-    padding: 16,
-    paddingBottom: 110,
-  },
-  hero: {
-    backgroundColor: COLORS.navy,
-    borderRadius: 24,
-    padding: 18,
-    marginBottom: 16,
-  },
-  heroTitle: {
-    color: COLORS.white,
-    fontSize: 24,
-    fontWeight: "900",
-  },
-  heroSub: {
-    color: "#CBD5E1",
+  label: {
+    color: COLORS.text,
     fontSize: 13,
-    marginTop: 6,
-    lineHeight: 19,
-  },
-  sectionTitle: {
-    color: COLORS.text,
-    fontSize: 18,
     fontWeight: "900",
-    marginTop: 8,
-    marginBottom: 12,
+    marginBottom: 8,
   },
-  form: {
-    backgroundColor: COLORS.white,
-    borderRadius: 22,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 16,
-  },
-  card: {
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 12,
-  },
-  cardTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  iconBox: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: COLORS.primary + "15",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cardTitle: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "900",
-  },
-  cardSub: {
-    color: COLORS.muted,
+  error: {
+    color: COLORS.danger,
+    backgroundColor: COLORS.dangerLight,
+    padding: 12,
+    borderRadius: 16,
     fontSize: 12,
-    marginTop: 4,
-    lineHeight: 18,
-  },
-  badge: {
-    backgroundColor: COLORS.primary + "18",
-    color: COLORS.primary,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-    fontSize: 10,
-    fontWeight: "900",
-    overflow: "hidden",
-  },
-  row: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  half: {
-    flex: 1,
-  },
-  statGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  statCard: {
-    width: "48%",
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 12,
-  },
-  statValue: {
-    fontSize: 24,
-    color: COLORS.text,
-    fontWeight: "900",
-  },
-  statLabel: {
-    color: COLORS.muted,
-    fontSize: 12,
-    marginTop: 4,
-    fontWeight: "700",
+    fontWeight: "800",
+    marginBottom: 14,
   },
 });

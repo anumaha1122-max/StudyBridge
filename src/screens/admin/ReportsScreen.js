@@ -1,209 +1,135 @@
-import React, { useState } from "react";
-import {
-  SafeAreaView,
-  ScrollView,
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import React from "react";
 import { COLORS } from "../../utils/colors";
 import { useApp } from "../../context/AppContext";
-import AppHeader from "../../components/AppHeader";
-import AppInput from "../../components/AppInput";
-import AppButton from "../../components/AppButton";
-import SuccessModal from "../../components/SuccessModal";
+import AnalyticsCard from "../../components/AnalyticsCard";
+import AnalyticsScreenWrapper, {
+  AnalyticsGrid,
+  AnalyticsSection,
+  InsightBox,
+  ProgressRow,
+} from "../../components/AnalyticsScreenWrapper";
+import ReportCard from "../../components/ReportCard";
 
 export default function ReportsScreen({ navigation }) {
   const app = useApp();
-  const [success, setSuccess] = useState("");
-  
-  const totalHomework = app.homework.length;
-  const submissions = app.homeworkSubmissions.length;
-  const reviewed = app.homeworkSubmissions.filter((s) => s.status === "REVIEWED").length;
-  const feesPending = app.fees.filter((f) => f.status !== "VERIFIED").length;
-  const absent = app.attendance.filter((a) => a.status === "ABSENT").length;
+
+  const students = app.students?.length || 0;
+  const teachers = app.teachers?.length || 0;
+  const parents = app.parents?.length || 0;
+  const classes = app.classes?.length || 0;
+  const fees = app.fees || [];
+  const attendance = app.attendance || [];
+  const marks = app.marks || [];
+  const leaveRequests = app.leaveRequests || [];
+
+  const verifiedFees = fees.filter((item) => item.status === "VERIFIED").length;
+  const pendingFees = fees.filter((item) => item.status !== "VERIFIED").length;
+  const presentCount = attendance.filter((item) => item.status === "PRESENT").length;
+  const attendancePercent =
+    attendance.length > 0 ? Math.round((presentCount / attendance.length) * 100) : 0;
+
+  const totalMarks = marks.reduce((sum, item) => sum + Number(item.marksObtained || 0), 0);
+  const totalMax = marks.reduce((sum, item) => sum + Number(item.totalMarks || 0), 0);
+  const performancePercent = totalMax > 0 ? Math.round((totalMarks / totalMax) * 100) : 0;
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <AppHeader title="Reports" navigation={navigation} />
+    <AnalyticsScreenWrapper
+      navigation={navigation}
+      title="School Reports"
+      subtitle="Complete analytics for school users, attendance, fees and performance."
+      icon="bar-chart-outline"
+      color={COLORS.purple}
+    >
+      <AnalyticsGrid>
+        <AnalyticsCard
+          title="Students"
+          value={students}
+          subtitle="Active student profiles"
+          icon="people-outline"
+          color={COLORS.primary}
+          trend="+Live"
+        />
+        <AnalyticsCard
+          title="Teachers"
+          value={teachers}
+          subtitle="Teaching staff"
+          icon="school-outline"
+          color={COLORS.secondary}
+          trend="+Live"
+        />
+        <AnalyticsCard
+          title="Parents"
+          value={parents}
+          subtitle="Parent accounts"
+          icon="people-circle-outline"
+          color={COLORS.accent}
+        />
+        <AnalyticsCard
+          title="Classes"
+          value={classes}
+          subtitle="Configured classes"
+          icon="business-outline"
+          color={COLORS.purple}
+        />
+      </AnalyticsGrid>
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
-          <Text style={styles.heroTitle}>School Reports</Text>
-          <Text style={styles.heroSub}>Academic, attendance, homework, fee and activity reports.</Text>
-        </View>
+      <AnalyticsSection
+        title="Academic Health"
+        subtitle="Attendance and marks performance summary."
+      >
+        <ProgressRow label="Attendance Percentage" value={attendancePercent} color={COLORS.success} />
+        <ProgressRow label="Performance Percentage" value={performancePercent} color={COLORS.purple} />
 
-        <View style={styles.statGrid}>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{totalHomework}</Text>
-            <Text style={styles.statLabel}>Homework</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{submissions}</Text>
-            <Text style={styles.statLabel}>Submissions</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{reviewed}</Text>
-            <Text style={styles.statLabel}>Reviewed</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{app.exams.length}</Text>
-            <Text style={styles.statLabel}>Exams</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{app.marks.length}</Text>
-            <Text style={styles.statLabel}>Marks Uploaded</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{absent}</Text>
-            <Text style={styles.statLabel}>Absent Records</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{feesPending}</Text>
-            <Text style={styles.statLabel}>Pending Fees</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{app.meetings.length}</Text>
-            <Text style={styles.statLabel}>Meetings</Text>
-          </View>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+        <InsightBox
+          title="Academic Insight"
+          message={
+            attendancePercent >= 75
+              ? "Attendance is healthy. Continue monitoring low-attendance students."
+              : "Attendance needs attention. Send alerts to parents and class teachers."
+          }
+          color={attendancePercent >= 75 ? COLORS.success : COLORS.warning}
+        />
+      </AnalyticsSection>
+
+      <AnalyticsSection
+        title="Finance Report"
+        subtitle="Fee verification and pending payment status."
+      >
+        <ReportCard
+          title="Verified Payments"
+          subtitle="Payments approved by admin"
+          value={verifiedFees}
+          icon="shield-checkmark-outline"
+          color={COLORS.success}
+        />
+        <ReportCard
+          title="Pending Payments"
+          subtitle="Proofs or dues waiting for action"
+          value={pendingFees}
+          icon="time-outline"
+          color={COLORS.warning}
+        />
+      </AnalyticsSection>
+
+      <AnalyticsSection
+        title="Requests Report"
+        subtitle="Leave and approval request overview."
+      >
+        <ReportCard
+          title="Leave Requests"
+          subtitle="Total leave requests from students and parents"
+          value={leaveRequests.length}
+          icon="mail-outline"
+          color={COLORS.danger}
+        />
+        <ReportCard
+          title="Meetings"
+          subtitle="Parent-teacher meeting requests"
+          value={app.meetings?.length || 0}
+          icon="people-outline"
+          color={COLORS.accent}
+        />
+      </AnalyticsSection>
+    </AnalyticsScreenWrapper>
   );
-
 }
-
-const AdminCard = ({ title, subtitle, status, icon = "document-text-outline", children }) => (
-  <View style={styles.card}>
-    <View style={styles.cardTop}>
-      <View style={styles.iconBox}>
-        <Ionicons name={icon} size={22} color={COLORS.primary} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.cardTitle}>{title}</Text>
-        {subtitle ? <Text style={styles.cardSub}>{subtitle}</Text> : null}
-      </View>
-      {status ? <Text style={styles.badge}>{status}</Text> : null}
-    </View>
-    {children ? <View style={{ marginTop: 12 }}>{children}</View> : null}
-  </View>
-);
-
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  content: {
-    padding: 16,
-    paddingBottom: 110,
-  },
-  hero: {
-    backgroundColor: COLORS.navy,
-    borderRadius: 24,
-    padding: 18,
-    marginBottom: 16,
-  },
-  heroTitle: {
-    color: COLORS.white,
-    fontSize: 24,
-    fontWeight: "900",
-  },
-  heroSub: {
-    color: "#CBD5E1",
-    fontSize: 13,
-    marginTop: 6,
-    lineHeight: 19,
-  },
-  sectionTitle: {
-    color: COLORS.text,
-    fontSize: 18,
-    fontWeight: "900",
-    marginTop: 8,
-    marginBottom: 12,
-  },
-  form: {
-    backgroundColor: COLORS.white,
-    borderRadius: 22,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 16,
-  },
-  card: {
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 12,
-  },
-  cardTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  iconBox: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: COLORS.primary + "15",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cardTitle: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "900",
-  },
-  cardSub: {
-    color: COLORS.muted,
-    fontSize: 12,
-    marginTop: 4,
-    lineHeight: 18,
-  },
-  badge: {
-    backgroundColor: COLORS.primary + "18",
-    color: COLORS.primary,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-    fontSize: 10,
-    fontWeight: "900",
-    overflow: "hidden",
-  },
-  row: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  half: {
-    flex: 1,
-  },
-  statGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  statCard: {
-    width: "48%",
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 12,
-  },
-  statValue: {
-    fontSize: 24,
-    color: COLORS.text,
-    fontWeight: "900",
-  },
-  statLabel: {
-    color: COLORS.muted,
-    fontSize: 12,
-    marginTop: 4,
-    fontWeight: "700",
-  },
-});

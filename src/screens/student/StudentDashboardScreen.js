@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React from "react";
 import {
   SafeAreaView,
   ScrollView,
@@ -6,109 +6,150 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../../utils/colors";
 import { useApp } from "../../context/AppContext";
 import { useAuth } from "../../context/AuthContext";
-import AppHeader from "../../components/AppHeader";
-import AppInput from "../../components/AppInput";
-import AppButton from "../../components/AppButton";
-import SuccessModal from "../../components/SuccessModal";
 
-export default function StudentDashboardScreen({ navigation, route }) {
+export default function StudentDashboardScreen({ navigation }) {
   const app = useApp();
-  const { currentUser, logout } = useAuth();
-  const studentId = currentUser?.studentId || 1;
-  const [success, setSuccess] = useState("");
+  const { currentUser } = useAuth();
+
   
+  const studentId = currentUser?.studentId || 1;
+
   const dashboard = app.getStudentDashboard
     ? app.getStudentDashboard(studentId)
     : {
-        student: app.students.find((s) => s.id === studentId),
-        pendingHomeworkCount: app.homework.length,
-        upcomingExamCount: app.exams.length,
+        student: app.students?.find((s) => s.id === studentId),
+        pendingHomeworkCount: app.homework?.length || 0,
+        upcomingExamCount: app.exams?.length || 0,
         attendancePercentage: 0,
         performancePercentage: 0,
-        feeDueCount: app.fees.length,
-        behaviorScore: 0,
-        achievementCount: app.achievements.length,
+        feeDueCount: app.fees?.length || 0,
+        achievementCount: app.achievements?.length || 0,
       };
 
-  const quick = [
-    ["Homework", "StudentHomework", "book-outline"],
-    ["Exams", "ExamPlanner", "calendar-outline"],
-    ["Tasks", "DailyTasks", "checkbox-outline"],
-    ["Study Plan", "StudyPlan", "map-outline"],
-    ["Progress", "StudentProgress", "trending-up-outline"],
-    ["Notes", "StudentNotes", "document-text-outline"],
-    ["Ask Doubt", "AskDoubt", "help-circle-outline"],
-    ["Timetable", "StudentTimetable", "time-outline"],
-    ["Diary", "StudentDailyDiary", "journal-outline"],
-    ["Fees", "StudentFees", "card-outline"],
-    ["ID Card", "StudentDigitalId", "id-card-outline"],
-    ["Badges", "StudentAchievements", "ribbon-outline"],
-  ];
+  const notifications =
+    app.notifications?.filter((n) => n.userRole === "STUDENT" && (!n.userId || n.userId === studentId)) || [];
 
-  const notifications = app.notifications.filter(
-    (n) => n.userRole === "STUDENT" && (!n.userId || n.userId === studentId)
-  );
+  const quickActions = [
+    {
+      title: "Homework",
+      subtitle: "View and submit assigned work",
+      icon: "book-outline",
+      route: "StudentHomework",
+      color: COLORS.primary,
+      badge: String(dashboard.pendingHomeworkCount || 0),
+    },
+    {
+      title: "Exam Planner",
+      subtitle: "Check upcoming exams and syllabus",
+      icon: "calendar-outline",
+      route: "ExamPlanner",
+      color: COLORS.warning,
+      badge: String(dashboard.upcomingExamCount || 0),
+    },
+    {
+      title: "Daily Tasks",
+      subtitle: "Track study tasks and completion",
+      icon: "checkbox-outline",
+      route: "DailyTasks",
+      color: COLORS.success,
+    },
+    {
+      title: "Study Notes",
+      subtitle: "Read notes and learning materials",
+      icon: "document-text-outline",
+      route: "StudentNotes",
+      color: COLORS.secondary,
+    },
+    {
+      title: "Ask Doubt",
+      subtitle: "Submit doubts to teachers",
+      icon: "help-circle-outline",
+      route: "AskDoubt",
+      color: COLORS.accent,
+    },
+    {
+      title: "Progress",
+      subtitle: "Marks, attendance and performance",
+      icon: "trending-up-outline",
+      route: "StudentProgress",
+      color: COLORS.purple,
+    },
+  ];
 
   return (
     <SafeAreaView style={styles.safe}>
-      <AppHeader title="Student Dashboard" navigation={navigation} showBack={false} />
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.navy} />
 
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
-          <Text style={styles.heroTitle}>Hello, {dashboard.student?.name || currentUser?.name}</Text>
+          <View style={styles.heroCircleOne} />
+          <View style={styles.heroCircleTwo} />
+
+          <View style={styles.heroTop}>
+            <View style={styles.logoBox}>
+              <Ionicons name="school-outline" size={30} color={COLORS.white} />
+            </View>
+
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={styles.notificationBtn}
+              onPress={() => navigation.navigate("StudentNotifications")}
+            >
+              <Ionicons name="notifications-outline" size={22} color={COLORS.white} />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.heroTitle}>Hi, {dashboard.student?.name || currentUser?.name || "Student"}</Text>
           <Text style={styles.heroSub}>
-            Track homework, exams, tasks, attendance, notes, doubts, fees and progress.
+            Complete homework, prepare for exams, ask doubts and improve your daily progress.
           </Text>
+
+          <View style={styles.rolePill}>
+            <Text style={styles.rolePillText}>{dashboard.student?.className || "STUDENT"}</Text>
+          </View>
         </View>
 
         <View style={styles.statGrid}>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{dashboard.pendingHomeworkCount}</Text>
-            <Text style={styles.statLabel}>Pending HW</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{dashboard.upcomingExamCount}</Text>
-            <Text style={styles.statLabel}>Exams</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{dashboard.attendancePercentage}%</Text>
-            <Text style={styles.statLabel}>Attendance</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{dashboard.performancePercentage}%</Text>
-            <Text style={styles.statLabel}>Performance</Text>
-          </View>
+          <StatBox value={dashboard.pendingHomeworkCount} label="Homework" icon="book-outline" tone={COLORS.primary} />
+          <StatBox value={dashboard.upcomingExamCount} label="Exams" icon="calendar-outline" tone={COLORS.warning} />
+          <StatBox value={dashboard.attendancePercentage + "%"} label="Attendance" icon="checkmark-circle-outline" tone={COLORS.success} />
+          <StatBox value={dashboard.performancePercentage + "%"} label="Performance" icon="trending-up-outline" tone={COLORS.purple} />
         </View>
 
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        <SectionTitle title="Learning Zone" action="Progress" onPress={() => navigation.navigate("StudentProgress")} />
 
-        {quick.map((item) => (
-          <SCard
-            key={item[1]}
-            title={item[0]}
-            subtitle="Open student module"
-            icon={item[2]}
-            onPress={() => navigation.navigate(item[1])}
+        {quickActions.map((item) => (
+          <QuickCard
+            key={item.route}
+            title={item.title}
+            subtitle={item.subtitle}
+            icon={item.icon}
+            color={item.color}
+            badge={item.badge}
+            onPress={() => navigation.navigate(item.route)}
           />
         ))}
 
-        <Text style={styles.sectionTitle}>Latest Notifications</Text>
+        <SectionTitle title="Latest Updates" action="All" onPress={() => navigation.navigate("StudentNotifications")} />
 
         {notifications.length === 0 ? (
-          <SCard title="No notifications" subtitle="Student updates will appear here." icon="notifications-outline" />
+          <View style={styles.emptyBox}>
+            <Ionicons name="notifications-off-outline" size={34} color={COLORS.softText} />
+            <Text style={styles.emptyText}>No student notifications yet.</Text>
+          </View>
         ) : (
-          notifications.slice(0, 5).map((n) => (
-            <SCard
-              key={n.id}
-              title={n.title}
-              subtitle={n.message}
-              status={n.read ? "READ" : "NEW"}
-              icon="notifications-outline"
+          notifications.slice(0, 5).map((item) => (
+            <ActivityCard
+              key={item.id}
+              title={item.title}
+              message={item.message}
+              status={item.read ? "READ" : "NEW"}
             />
           ))
         )}
@@ -118,40 +159,55 @@ export default function StudentDashboardScreen({ navigation, route }) {
 
 }
 
-const SCard = ({ title, subtitle, status, icon = "document-text-outline", onPress, children }) => (
-  <TouchableOpacity activeOpacity={onPress ? 0.85 : 1} onPress={onPress} style={styles.card}>
-    <View style={styles.cardTop}>
-      <View style={styles.iconBox}>
-        <Ionicons name={icon} size={22} color={COLORS.primary} />
-      </View>
-
-      <View style={{ flex: 1 }}>
-        <Text style={styles.cardTitle}>{title}</Text>
-        {subtitle ? <Text style={styles.cardSub}>{subtitle}</Text> : null}
-      </View>
-
-      {status ? <Text style={styles.badge}>{status}</Text> : null}
+const StatBox = ({ value, label, icon, tone = COLORS.primary }) => (
+  <View style={styles.statBox}>
+    <View style={[styles.statIcon, { backgroundColor: tone + "18" }]}>
+      <Ionicons name={icon} size={21} color={tone} />
     </View>
-
-    {children ? <View style={{ marginTop: 12 }}>{children}</View> : null}
-  </TouchableOpacity>
-);
-
-const PickerRow = ({ label, children }) => (
-  <View style={{ marginBottom: 12 }}>
-    <Text style={styles.label}>{label}</Text>
-    <View style={styles.chipRow}>{children}</View>
+    <Text numberOfLines={1} style={styles.statValue}>{value}</Text>
+    <Text numberOfLines={2} style={styles.statLabel}>{label}</Text>
   </View>
 );
 
-const Chip = ({ title, active, onPress }) => (
-  <TouchableOpacity
-    activeOpacity={0.85}
-    onPress={onPress}
-    style={[styles.chip, active && styles.activeChip]}
-  >
-    <Text style={[styles.chipText, active && styles.activeChipText]}>{title}</Text>
+const QuickCard = ({ title, subtitle, icon, color = COLORS.primary, onPress, badge }) => (
+  <TouchableOpacity activeOpacity={0.86} style={styles.quickCard} onPress={onPress}>
+    <View style={[styles.quickIcon, { backgroundColor: color + "17" }]}>
+      <Ionicons name={icon} size={23} color={color} />
+    </View>
+
+    <View style={{ flex: 1 }}>
+      <Text numberOfLines={1} style={styles.quickTitle}>{title}</Text>
+      <Text numberOfLines={2} style={styles.quickSub}>{subtitle}</Text>
+    </View>
+
+    {badge ? <Text style={[styles.badge, { color, backgroundColor: color + "14" }]}>{badge}</Text> : null}
+
+    <Ionicons name="chevron-forward" size={20} color={COLORS.softText} />
   </TouchableOpacity>
+);
+
+const ActivityCard = ({ title, message, icon = "notifications-outline", status = "NEW" }) => (
+  <View style={styles.activityCard}>
+    <View style={styles.activityIcon}>
+      <Ionicons name={icon} size={20} color={COLORS.primary} />
+    </View>
+    <View style={{ flex: 1 }}>
+      <Text numberOfLines={1} style={styles.activityTitle}>{title}</Text>
+      <Text numberOfLines={2} style={styles.activityMsg}>{message}</Text>
+    </View>
+    <Text style={styles.statusBadge}>{status}</Text>
+  </View>
+);
+
+const SectionTitle = ({ title, action, onPress }) => (
+  <View style={styles.sectionRow}>
+    <Text style={styles.sectionTitle}>{title}</Text>
+    {action ? (
+      <TouchableOpacity activeOpacity={0.8} onPress={onPress}>
+        <Text style={styles.sectionAction}>{action}</Text>
+      </TouchableOpacity>
+    ) : null}
+  </View>
 );
 
 const styles = StyleSheet.create({
@@ -161,143 +217,237 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-    paddingBottom: 110,
+    paddingBottom: 120,
   },
   hero: {
     backgroundColor: COLORS.navy,
-    borderRadius: 24,
-    padding: 18,
+    borderRadius: 32,
+    padding: 20,
+    minHeight: 210,
+    overflow: "hidden",
     marginBottom: 16,
   },
-  heroTitle: {
-    color: COLORS.white,
-    fontSize: 23,
-    fontWeight: "900",
+  heroCircleOne: {
+    position: "absolute",
+    width: 190,
+    height: 190,
+    borderRadius: 95,
+    right: -62,
+    top: -58,
+    backgroundColor: "#4F46E555",
   },
-  heroSub: {
-    color: "#CBD5E1",
-    marginTop: 6,
-    fontSize: 13,
-    lineHeight: 20,
+  heroCircleTwo: {
+    position: "absolute",
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    left: -55,
+    bottom: -55,
+    backgroundColor: "rgba(6,182,212,0.22)",
   },
-  sectionTitle: {
-    color: COLORS.text,
-    fontSize: 18,
-    fontWeight: "900",
-    marginBottom: 12,
-    marginTop: 8,
-  },
-  form: {
-    backgroundColor: COLORS.white,
-    borderRadius: 22,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 16,
-  },
-  card: {
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 12,
-  },
-  cardTop: {
+  heroTop: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    justifyContent: "space-between",
   },
-  iconBox: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: COLORS.primary + "15",
+  logoBox: {
+    width: 56,
+    height: 56,
+    borderRadius: 20,
+    backgroundColor: "#4F46E5",
     alignItems: "center",
     justifyContent: "center",
   },
-  cardTitle: {
+  notificationBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.13)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  heroTitle: {
+    color: COLORS.white,
+    fontSize: 27,
+    fontWeight: "900",
+    marginTop: 22,
+    lineHeight: 34,
+  },
+  heroSub: {
+    color: "#CBD5E1",
+    fontSize: 13,
+    fontWeight: "700",
+    lineHeight: 20,
+    marginTop: 8,
+  },
+  rolePill: {
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(255,255,255,0.14)",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    marginTop: 14,
+  },
+  rolePillText: {
+    color: COLORS.white,
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 0.3,
+  },
+  statGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  statBox: {
+    width: "48%",
+    backgroundColor: COLORS.white,
+    borderRadius: 24,
+    padding: 15,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: 12,
+    shadowColor: COLORS.navy,
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 2,
+  },
+  statIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  statValue: {
+    color: COLORS.text,
+    fontSize: 24,
+    fontWeight: "900",
+  },
+  statLabel: {
+    color: COLORS.muted,
+    fontSize: 12,
+    fontWeight: "800",
+    lineHeight: 17,
+    marginTop: 4,
+  },
+  sectionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    color: COLORS.text,
+    fontSize: 19,
+    fontWeight: "900",
+  },
+  sectionAction: {
+    color: "#4F46E5",
+    fontSize: 13,
+    fontWeight: "900",
+  },
+  quickCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 22,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 12,
+    shadowColor: COLORS.navy,
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 2,
+  },
+  quickIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  quickTitle: {
     color: COLORS.text,
     fontSize: 15,
     fontWeight: "900",
   },
-  cardSub: {
+  quickSub: {
     color: COLORS.muted,
     fontSize: 12,
-    marginTop: 4,
+    fontWeight: "700",
     lineHeight: 18,
+    marginTop: 4,
   },
   badge: {
-    backgroundColor: COLORS.primary + "18",
-    color: COLORS.primary,
-    paddingHorizontal: 10,
+    paddingHorizontal: 9,
     paddingVertical: 5,
     borderRadius: 999,
     fontSize: 10,
     fontWeight: "900",
     overflow: "hidden",
   },
-  row: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  half: {
-    flex: 1,
-  },
-  statGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  statCard: {
-    width: "48%",
+  activityCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
+    borderRadius: 20,
+    padding: 13,
     borderWidth: 1,
     borderColor: COLORS.border,
-    marginBottom: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 11,
+    marginBottom: 10,
   },
-  statValue: {
-    fontSize: 24,
+  activityIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 15,
+    backgroundColor: COLORS.primaryLight,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  activityTitle: {
     color: COLORS.text,
+    fontSize: 14,
     fontWeight: "900",
   },
-  statLabel: {
+  activityMsg: {
     color: COLORS.muted,
     fontSize: 12,
-    marginTop: 4,
     fontWeight: "700",
+    lineHeight: 18,
+    marginTop: 3,
   },
-  label: {
-    color: COLORS.text,
-    fontSize: 13,
+  statusBadge: {
+    backgroundColor: COLORS.warningLight,
+    color: COLORS.warning,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    fontSize: 10,
     fontWeight: "900",
-    marginBottom: 8,
+    overflow: "hidden",
   },
-  chipRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  chip: {
+  emptyBox: {
+    backgroundColor: COLORS.white,
+    borderRadius: 22,
+    padding: 20,
+    alignItems: "center",
     borderWidth: 1,
     borderColor: COLORS.border,
-    backgroundColor: COLORS.white,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
   },
-  activeChip: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  chipText: {
-    color: COLORS.text,
-    fontSize: 12,
+  emptyText: {
+    color: COLORS.muted,
+    fontSize: 13,
     fontWeight: "800",
-  },
-  activeChipText: {
-    color: COLORS.white,
+    marginTop: 8,
+    textAlign: "center",
   },
 });

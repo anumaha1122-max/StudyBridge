@@ -1,36 +1,27 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
 import { COLORS } from "../utils/colors";
-import StatusBadge from "./StatusBadge";
+import BaseListCard from "./BaseListCard";
 
-export default function TimetableCard({ title = "TimetableCard", subtitle = "Ready for backend integration", status }) {
+export default function TimetableCard({
+  item = {},
+  onPress,
+  children,
+}) {
   return (
-    <View style={styles.card}>
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.subtitle}>{subtitle}</Text>
-      {status ? <StatusBadge status={status} /> : null}
-    </View>
+    <BaseListCard
+      title={item.subject || "Timetable"}
+      subtitle={
+        (item.day || "") +
+        (item.period ? " • Period " + item.period : "") +
+        (item.teacher ? " • " + item.teacher : "")
+      }
+      meta={item.time || item.room || ""}
+      status={item.room || "CLASS"}
+      icon="time-outline"
+      color={COLORS.primary}
+      onPress={onPress}
+    >
+      {children}
+    </BaseListCard>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  title: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "900",
-  },
-  subtitle: {
-    color: COLORS.muted,
-    fontSize: 12,
-    marginTop: 5,
-    marginBottom: 8,
-  },
-});

@@ -1,285 +1,151 @@
-import React, { useMemo, useState } from "react";
-import {
-  SafeAreaView,
-  ScrollView,
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import React, { useState } from "react";
+import { Text, StyleSheet } from "react-native";
 import { COLORS } from "../../utils/colors";
 import { useApp } from "../../context/AppContext";
-import { useAuth } from "../../context/AuthContext";
-import AppHeader from "../../components/AppHeader";
 import AppInput from "../../components/AppInput";
 import AppButton from "../../components/AppButton";
 import SuccessModal from "../../components/SuccessModal";
+import FormScreenWrapper, {
+  FormCard,
+  FormSectionTitle,
+  ChipGroup,
+  InfoBox,
+} from "../../components/FormScreenWrapper";
 
-export default function CreateExamScreen({ navigation, route }) {
+export default function CreateExamScreen({ navigation }) {
   const app = useApp();
-  const { currentUser, logout } = useAuth();
-  const [success, setSuccess] = useState("");
-  
+
   const [form, setForm] = useState({
     title: "",
     subject: "Mathematics",
+    className: "Class 10",
     examDate: "",
     startTime: "",
+    totalMarks: "",
     syllabus: "",
-    instructions: "",
   });
 
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const update = (key, value) => setForm({ ...form, [key]: value });
+
   const submit = () => {
-    if (!form.title || !form.examDate) {
-      setSuccess("Please enter exam title and date.");
+    if (!form.title || !form.examDate || !form.totalMarks) {
+      setError("Please fill exam title, exam date and total marks.");
       return;
     }
 
-    app.createExam({
-      ...form,
-      teacherId: currentUser?.teacherId || 1,
-      classId: currentUser?.classId || 1,
-    });
+    if (app.createExam) {
+      app.createExam({
+        ...form,
+        status: "UPCOMING",
+      });
+    }
 
-    setForm({
-      title: "",
-      subject: "Mathematics",
-      examDate: "",
-      startTime: "",
-      syllabus: "",
-      instructions: "",
-    });
-
-    setSuccess("Exam created. Student and parent notified.");
+    setError("");
+    setSuccess("Exam created successfully.");
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <AppHeader title="Create Exam" navigation={navigation} />
+    <FormScreenWrapper
+      title="Create Exam"
+      subtitle="Schedule exams with subject, marks and syllabus."
+      icon="calendar-outline"
+      color={COLORS.warning}
+      navigation={navigation}
+    >
+      <FormCard>
+        <FormSectionTitle
+          title="Exam Information"
+          subtitle="Students and parents will see this exam schedule."
+        />
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
-          <Text style={styles.heroTitle}>Schedule Exam</Text>
-          <Text style={styles.heroSub}>Create exams with syllabus and timing.</Text>
-        </View>
+        {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <View style={styles.form}>
-          <AppInput label="Exam Title" value={form.title} onChangeText={(v) => setForm({ ...form, title: v })} />
+        <Text style={styles.label}>Subject</Text>
+        <ChipGroup
+          value={form.subject}
+          onChange={(v) => update("subject", v)}
+          options={["Mathematics", "Science", "English", "Social", "Computer"]}
+        />
 
-          <PickerRow label="Subject">
-            {["Mathematics", "Science", "English"].map((s) => (
-              <Chip key={s} title={s} active={form.subject === s} onPress={() => setForm({ ...form, subject: s })} />
-            ))}
-          </PickerRow>
+        <Text style={styles.label}>Class</Text>
+        <ChipGroup
+          value={form.className}
+          onChange={(v) => update("className", v)}
+          options={["Class 6", "Class 7", "Class 8", "Class 9", "Class 10"]}
+        />
 
-          <AppInput label="Exam Date" value={form.examDate} onChangeText={(v) => setForm({ ...form, examDate: v })} placeholder="2026-06-22" />
-          <AppInput label="Start Time" value={form.startTime} onChangeText={(v) => setForm({ ...form, startTime: v })} placeholder="10:00 AM" />
-          <AppInput label="Syllabus" value={form.syllabus} onChangeText={(v) => setForm({ ...form, syllabus: v })} multiline />
-          <AppInput label="Instructions" value={form.instructions} onChangeText={(v) => setForm({ ...form, instructions: v })} multiline />
+        <AppInput
+          label="Exam Title"
+          value={form.title}
+          onChangeText={(v) => update("title", v)}
+          placeholder="Example: Unit Test 1"
+        />
 
-          <AppButton title="Create Exam" onPress={submit} />
-        </View>
+        <AppInput
+          label="Exam Date"
+          value={form.examDate}
+          onChangeText={(v) => update("examDate", v)}
+          placeholder="Example: 2026-06-20"
+        />
 
-        <Text style={styles.sectionTitle}>Exam List</Text>
+        <AppInput
+          label="Start Time"
+          value={form.startTime}
+          onChangeText={(v) => update("startTime", v)}
+          placeholder="Example: 10:00 AM"
+        />
 
-        {app.exams.map((exam) => (
-          <TCard
-            key={exam.id}
-            title={exam.title}
-            subtitle={exam.subject + " • " + exam.examDate + " • " + exam.syllabus}
-            status="UPCOMING"
-            icon="calendar-outline"
-          />
-        ))}
+        <AppInput
+          label="Total Marks"
+          value={form.totalMarks}
+          onChangeText={(v) => update("totalMarks", v)}
+          placeholder="Example: 100"
+          keyboardType="numeric"
+        />
 
-        <SuccessModal visible={!!success} title="Exam" message={success} onClose={() => setSuccess("")} />
-      </ScrollView>
-    </SafeAreaView>
+        <AppInput
+          label="Syllabus"
+          value={form.syllabus}
+          onChangeText={(v) => update("syllabus", v)}
+          placeholder="Enter exam syllabus"
+          multiline
+        />
+
+        <InfoBox color={COLORS.warning} text="Exam will be visible in student and parent exam planners." />
+
+        <AppButton title="Create Exam" onPress={submit} />
+      </FormCard>
+
+      <SuccessModal
+        visible={!!success}
+        title="Exam"
+        message={success}
+        onClose={() => {
+          setSuccess("");
+          navigation.goBack();
+        }}
+      />
+    </FormScreenWrapper>
   );
-
 }
 
-const TCard = ({ title, subtitle, status, icon = "document-text-outline", onPress, children }) => (
-  <TouchableOpacity activeOpacity={onPress ? 0.85 : 1} onPress={onPress} style={styles.card}>
-    <View style={styles.cardTop}>
-      <View style={styles.iconBox}>
-        <Ionicons name={icon} size={22} color={COLORS.primary} />
-      </View>
-
-      <View style={{ flex: 1 }}>
-        <Text style={styles.cardTitle}>{title}</Text>
-        {subtitle ? <Text style={styles.cardSub}>{subtitle}</Text> : null}
-      </View>
-
-      {status ? <Text style={styles.badge}>{status}</Text> : null}
-    </View>
-
-    {children ? <View style={{ marginTop: 12 }}>{children}</View> : null}
-  </TouchableOpacity>
-);
-
-const PickerRow = ({ label, children }) => (
-  <View style={{ marginBottom: 12 }}>
-    <Text style={styles.label}>{label}</Text>
-    <View style={styles.chipRow}>{children}</View>
-  </View>
-);
-
-const Chip = ({ title, active, onPress }) => (
-  <TouchableOpacity
-    activeOpacity={0.85}
-    onPress={onPress}
-    style={[styles.chip, active && styles.activeChip]}
-  >
-    <Text style={[styles.chipText, active && styles.activeChipText]}>{title}</Text>
-  </TouchableOpacity>
-);
-
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  content: {
-    padding: 16,
-    paddingBottom: 110,
-  },
-  hero: {
-    backgroundColor: COLORS.navy,
-    borderRadius: 24,
-    padding: 18,
-    marginBottom: 16,
-  },
-  heroTitle: {
-    color: COLORS.white,
-    fontSize: 23,
-    fontWeight: "900",
-  },
-  heroSub: {
-    color: "#CBD5E1",
-    marginTop: 6,
-    fontSize: 13,
-    lineHeight: 20,
-  },
-  sectionTitle: {
-    color: COLORS.text,
-    fontSize: 18,
-    fontWeight: "900",
-    marginBottom: 12,
-    marginTop: 8,
-  },
-  form: {
-    backgroundColor: COLORS.white,
-    borderRadius: 22,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 16,
-  },
-  card: {
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 12,
-  },
-  cardTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  iconBox: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: COLORS.primary + "15",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cardTitle: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "900",
-  },
-  cardSub: {
-    color: COLORS.muted,
-    fontSize: 12,
-    marginTop: 4,
-    lineHeight: 18,
-  },
-  badge: {
-    backgroundColor: COLORS.primary + "18",
-    color: COLORS.primary,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-    fontSize: 10,
-    fontWeight: "900",
-    overflow: "hidden",
-  },
-  row: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  half: {
-    flex: 1,
-  },
-  statGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  statCard: {
-    width: "48%",
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 12,
-  },
-  statValue: {
-    fontSize: 24,
-    color: COLORS.text,
-    fontWeight: "900",
-  },
-  statLabel: {
-    color: COLORS.muted,
-    fontSize: 12,
-    marginTop: 4,
-    fontWeight: "700",
-  },
   label: {
     color: COLORS.text,
     fontSize: 13,
     fontWeight: "900",
     marginBottom: 8,
   },
-  chipRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  chip: {
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.white,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  activeChip: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  chipText: {
-    color: COLORS.text,
+  error: {
+    color: COLORS.danger,
+    backgroundColor: COLORS.dangerLight,
+    padding: 12,
+    borderRadius: 16,
     fontSize: 12,
     fontWeight: "800",
-  },
-  activeChipText: {
-    color: COLORS.white,
+    marginBottom: 14,
   },
 });

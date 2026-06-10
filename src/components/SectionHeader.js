@@ -1,20 +1,41 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+} from "react-native";
 import { COLORS } from "../utils/colors";
 
-export default function SectionHeader({ title, subtitle }) {
+export default function SectionHeader({
+  title,
+  subtitle,
+  actionText,
+  onAction,
+}) {
   return (
-    <View style={styles.wrapper}>
-      <Text style={styles.title}>{title}</Text>
-      {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+    <View style={styles.wrap}>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.title}>{title}</Text>
+        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+      </View>
+
+      {actionText ? (
+        <TouchableOpacity activeOpacity={0.8} onPress={onAction}>
+          <Text style={styles.action}>{actionText}</Text>
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrapper: {
-    marginTop: 18,
-    marginBottom: 10,
+  wrap: {
+    marginTop: 8,
+    marginBottom: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
   title: {
     color: COLORS.text,
@@ -24,6 +45,12 @@ const styles = StyleSheet.create({
   subtitle: {
     color: COLORS.muted,
     fontSize: 12,
+    fontWeight: "700",
     marginTop: 3,
+  },
+  action: {
+    color: COLORS.primary,
+    fontSize: 13,
+    fontWeight: "900",
   },
 });

@@ -1,285 +1,105 @@
-import React, { useState } from "react";
-import {
-  SafeAreaView,
-  ScrollView,
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import React from "react";
 import { COLORS } from "../../utils/colors";
 import { useApp } from "../../context/AppContext";
 import { useAuth } from "../../context/AuthContext";
-import AppHeader from "../../components/AppHeader";
-import AppInput from "../../components/AppInput";
-import AppButton from "../../components/AppButton";
-import SuccessModal from "../../components/SuccessModal";
+import AnalyticsCard from "../../components/AnalyticsCard";
+import AnalyticsScreenWrapper, {
+  AnalyticsGrid,
+  AnalyticsSection,
+  InsightBox,
+  ProgressRow,
+} from "../../components/AnalyticsScreenWrapper";
+import MarkCard from "../../components/MarkCard";
 
-export default function ChildPerformanceScreen({ navigation, route }) {
+export default function ChildPerformanceScreen({ navigation }) {
   const app = useApp();
-  const { currentUser, logout } = useAuth();
+  const { currentUser } = useAuth();
 
-  const parentId = currentUser?.parentId || 1;
   const childId = currentUser?.childId || 1;
+  const child = app.students?.find((item) => item.id === childId) || app.students?.[0];
 
-  const parent = app.parents.find((p) => p.id === parentId);
-  const child = app.students.find((s) => s.id === childId) || app.students[0];
+  const marks = app.marks?.filter((item) => !item.studentId || item.studentId === childId) || [];
+  const attendance = app.attendance?.filter((item) => !item.studentId || item.studentId === childId) || [];
+  const achievements = app.achievements?.filter((item) => !item.studentId || item.studentId === childId) || [];
+  const behavior = app.behaviorRecords?.filter((item) => !item.studentId || item.studentId === childId) || [];
 
-  const [success, setSuccess] = useState("");
+  const presentCount = attendance.filter((item) => item.status === "PRESENT").length;
+  const attendancePercent =
+    attendance.length > 0 ? Math.round((presentCount / attendance.length) * 100) : child?.attendancePercentage || 0;
 
-  
-  const marks = app.marks.filter((m) => m.studentId === child?.id);
-  const achievements = app.achievements.filter((a) => a.studentId === child?.id);
-  const behavior = app.behavior.filter((b) => b.studentId === child?.id);
-
-  const average =
-    marks.length === 0
-      ? child?.performancePercentage || 0
-      : Math.round(marks.reduce((sum, item) => sum + item.percentage, 0) / marks.length);
+  const totalMarks = marks.reduce((sum, item) => sum + Number(item.marksObtained || 0), 0);
+  const totalMax = marks.reduce((sum, item) => sum + Number(item.totalMarks || 0), 0);
+  const performancePercent =
+    totalMax > 0 ? Math.round((totalMarks / totalMax) * 100) : child?.performancePercentage || 0;
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <AppHeader title="Child Performance" navigation={navigation} />
+    <AnalyticsScreenWrapper
+      navigation={navigation}
+      title="Child Performance"
+      subtitle={"Track " + (child?.name || "child") + " marks, attendance and behavior."}
+      icon="trending-up-outline"
+      color={COLORS.accent}
+    >
+      <AnalyticsGrid>
+        <AnalyticsCard
+          title="Performance"
+          value={performancePercent + "%"}
+          subtitle="Overall score"
+          icon="bar-chart-outline"
+          color={COLORS.purple}
+        />
+        <AnalyticsCard
+          title="Attendance"
+          value={attendancePercent + "%"}
+          subtitle="Presence report"
+          icon="checkmark-circle-outline"
+          color={COLORS.success}
+        />
+        <AnalyticsCard
+          title="Achievements"
+          value={achievements.length}
+          subtitle="Awards received"
+          icon="ribbon-outline"
+          color={COLORS.warning}
+        />
+        <AnalyticsCard
+          title="Behavior"
+          value={behavior.length}
+          subtitle="Behavior records"
+          icon="star-outline"
+          color={COLORS.accent}
+        />
+      </AnalyticsGrid>
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
-          <Text style={styles.heroTitle}>{child?.name} Performance</Text>
-          <Text style={styles.heroSub}>Academic, attendance, behavior and achievement overview.</Text>
-        </View>
+      <AnalyticsSection
+        title="Parent Insight"
+        subtitle="Understand child progress in simple way."
+      >
+        <ProgressRow label="Academic Performance" value={performancePercent} color={COLORS.purple} />
+        <ProgressRow label="Attendance Strength" value={attendancePercent} color={COLORS.success} />
 
-        <View style={styles.statGrid}>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{average}%</Text>
-            <Text style={styles.statLabel}>Average</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{child?.attendancePercentage || 0}%</Text>
-            <Text style={styles.statLabel}>Attendance</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{child?.behaviorScore || 0}</Text>
-            <Text style={styles.statLabel}>Behavior</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{achievements.length}</Text>
-            <Text style={styles.statLabel}>Achievements</Text>
-          </View>
-        </View>
+        <InsightBox
+          title="Action Suggestion"
+          message={
+            attendancePercent < 75
+              ? "Attendance is low. Contact teacher and help your child attend regularly."
+              : "Attendance is good. Continue tracking homework and exam preparation."
+          }
+          color={attendancePercent < 75 ? COLORS.warning : COLORS.success}
+        />
+      </AnalyticsSection>
 
-        <Text style={styles.sectionTitle}>Recent Marks</Text>
-
+      <AnalyticsSection title="Recent Marks" subtitle="Latest marks uploaded by teachers.">
         {marks.length === 0 ? (
-          <PCard title="No marks yet" subtitle="Teacher uploaded marks will appear here." icon="bar-chart-outline" />
-        ) : (
-          marks.map((m) => (
-            <PCard
-              key={m.id}
-              title={m.subject}
-              subtitle={m.marksObtained + "/" + m.totalMarks + " • " + m.percentage + "% • " + (m.remark || "No remark")}
-              status={m.grade}
-              icon="bar-chart-outline"
-            />
-          ))
-        )}
-
-        <Text style={styles.sectionTitle}>Behavior Updates</Text>
-
-        {behavior.map((b) => (
-          <PCard
-            key={b.id}
-            title={b.type}
-            subtitle={b.remark}
-            status={String(b.points)}
-            icon="star-outline"
+          <InsightBox
+            title="No Marks Yet"
+            message="Marks will appear here after teacher uploads them."
+            color={COLORS.muted}
           />
-        ))}
-      </ScrollView>
-    </SafeAreaView>
+        ) : (
+          marks.slice(0, 6).map((item) => <MarkCard key={item.id} item={item} />)
+        )}
+      </AnalyticsSection>
+    </AnalyticsScreenWrapper>
   );
-
 }
-
-const PCard = ({ title, subtitle, status, icon = "document-text-outline", onPress, children }) => (
-  <TouchableOpacity activeOpacity={onPress ? 0.85 : 1} onPress={onPress} style={styles.card}>
-    <View style={styles.cardTop}>
-      <View style={styles.iconBox}>
-        <Ionicons name={icon} size={22} color={COLORS.primary} />
-      </View>
-
-      <View style={{ flex: 1 }}>
-        <Text style={styles.cardTitle}>{title}</Text>
-        {subtitle ? <Text style={styles.cardSub}>{subtitle}</Text> : null}
-      </View>
-
-      {status ? <Text style={styles.badge}>{status}</Text> : null}
-    </View>
-
-    {children ? <View style={{ marginTop: 12 }}>{children}</View> : null}
-  </TouchableOpacity>
-);
-
-const PickerRow = ({ label, children }) => (
-  <View style={{ marginBottom: 12 }}>
-    <Text style={styles.label}>{label}</Text>
-    <View style={styles.chipRow}>{children}</View>
-  </View>
-);
-
-const Chip = ({ title, active, onPress }) => (
-  <TouchableOpacity
-    activeOpacity={0.85}
-    onPress={onPress}
-    style={[styles.chip, active && styles.activeChip]}
-  >
-    <Text style={[styles.chipText, active && styles.activeChipText]}>{title}</Text>
-  </TouchableOpacity>
-);
-
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  content: {
-    padding: 16,
-    paddingBottom: 110,
-  },
-  hero: {
-    backgroundColor: COLORS.navy,
-    borderRadius: 24,
-    padding: 18,
-    marginBottom: 16,
-  },
-  heroTitle: {
-    color: COLORS.white,
-    fontSize: 23,
-    fontWeight: "900",
-  },
-  heroSub: {
-    color: "#CBD5E1",
-    marginTop: 6,
-    fontSize: 13,
-    lineHeight: 20,
-  },
-  sectionTitle: {
-    color: COLORS.text,
-    fontSize: 18,
-    fontWeight: "900",
-    marginBottom: 12,
-    marginTop: 8,
-  },
-  form: {
-    backgroundColor: COLORS.white,
-    borderRadius: 22,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 16,
-  },
-  card: {
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 12,
-  },
-  cardTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  iconBox: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: COLORS.primary + "15",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cardTitle: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "900",
-  },
-  cardSub: {
-    color: COLORS.muted,
-    fontSize: 12,
-    marginTop: 4,
-    lineHeight: 18,
-  },
-  badge: {
-    backgroundColor: COLORS.primary + "18",
-    color: COLORS.primary,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-    fontSize: 10,
-    fontWeight: "900",
-    overflow: "hidden",
-  },
-  row: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  half: {
-    flex: 1,
-  },
-  statGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  statCard: {
-    width: "48%",
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 12,
-  },
-  statValue: {
-    fontSize: 24,
-    color: COLORS.text,
-    fontWeight: "900",
-  },
-  statLabel: {
-    color: COLORS.muted,
-    fontSize: 12,
-    marginTop: 4,
-    fontWeight: "700",
-  },
-  label: {
-    color: COLORS.text,
-    fontSize: 13,
-    fontWeight: "900",
-    marginBottom: 8,
-  },
-  chipRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  chip: {
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.white,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  activeChip: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  chipText: {
-    color: COLORS.text,
-    fontSize: 12,
-    fontWeight: "800",
-  },
-  activeChipText: {
-    color: COLORS.white,
-  },
-});

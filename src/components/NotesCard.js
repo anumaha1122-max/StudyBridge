@@ -1,36 +1,24 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
 import { COLORS } from "../utils/colors";
-import StatusBadge from "./StatusBadge";
+import BaseListCard from "./BaseListCard";
 
-export default function NotesCard({ title = "NotesCard", subtitle = "Ready for backend integration", status }) {
+export default function NotesCard({
+  item = {},
+  isRead = false,
+  onPress,
+  children,
+}) {
   return (
-    <View style={styles.card}>
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.subtitle}>{subtitle}</Text>
-      {status ? <StatusBadge status={status} /> : null}
-    </View>
+    <BaseListCard
+      title={item.title || "Study Material"}
+      subtitle={item.subject || "Notes and study material"}
+      meta={item.type ? "Type: " + item.type : ""}
+      status={isRead ? "READ" : item.status || "NEW"}
+      icon="document-text-outline"
+      color={COLORS.secondary}
+      onPress={onPress}
+    >
+      {children}
+    </BaseListCard>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  title: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "900",
-  },
-  subtitle: {
-    color: COLORS.muted,
-    fontSize: 12,
-    marginTop: 5,
-    marginBottom: 8,
-  },
-});

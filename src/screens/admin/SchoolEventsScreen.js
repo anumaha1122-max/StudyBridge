@@ -1,209 +1,149 @@
 import React, { useState } from "react";
-import {
-  SafeAreaView,
-  ScrollView,
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Text, StyleSheet } from "react-native";
 import { COLORS } from "../../utils/colors";
 import { useApp } from "../../context/AppContext";
-import AppHeader from "../../components/AppHeader";
 import AppInput from "../../components/AppInput";
 import AppButton from "../../components/AppButton";
 import SuccessModal from "../../components/SuccessModal";
+import EventCard from "../../components/EventCard";
+import FormScreenWrapper, {
+  FormCard,
+  FormSectionTitle,
+  ChipGroup,
+  InfoBox,
+} from "../../components/FormScreenWrapper";
 
 export default function SchoolEventsScreen({ navigation }) {
   const app = useApp();
-  const [success, setSuccess] = useState("");
-  
+
   const [form, setForm] = useState({
     title: "",
+    type: "EVENT",
+    date: "",
+    time: "",
     description: "",
-    eventDate: "",
-    targetRole: "ALL",
-    classId: 1,
   });
 
-  const add = () => {
-    if (!form.title || !form.eventDate) {
-      setSuccess("Please enter event title and date.");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const events = app.events || [];
+
+  const update = (key, value) => setForm({ ...form, [key]: value });
+
+  const submit = () => {
+    if (!form.title || !form.date || !form.description) {
+      setError("Please fill title, date and description.");
       return;
     }
 
-    app.createEvent(form);
-    setForm({ title: "", description: "", eventDate: "", targetRole: "ALL", classId: 1 });
-    setSuccess("Event created successfully.");
+    if (app.createEvent) {
+      app.createEvent(form);
+    }
+
+    setError("");
+    setSuccess("School event created successfully.");
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <AppHeader title="School Events" navigation={navigation} />
+    <FormScreenWrapper
+      title="School Events"
+      subtitle="Create events, holidays, meetings and exam reminders."
+      icon="calendar-clear-outline"
+      color={COLORS.accent}
+      navigation={navigation}
+    >
+      <FormCard>
+        <FormSectionTitle
+          title="Create Event"
+          subtitle="This event will be visible for students, parents and teachers."
+        />
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
-          <Text style={styles.heroTitle}>Events</Text>
-          <Text style={styles.heroSub}>Create school events, meetings, holidays, and workshops.</Text>
-        </View>
+        {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <View style={styles.form}>
-          <AppInput label="Event Title" value={form.title} onChangeText={(v) => setForm({ ...form, title: v })} />
-          <AppInput label="Description" value={form.description} onChangeText={(v) => setForm({ ...form, description: v })} multiline />
-          <AppInput label="Event Date" value={form.eventDate} onChangeText={(v) => setForm({ ...form, eventDate: v })} placeholder="2026-06-25" />
-          <AppInput label="Target Role" value={form.targetRole} onChangeText={(v) => setForm({ ...form, targetRole: v.toUpperCase() })} />
-          <AppButton title="Create Event" onPress={add} />
-        </View>
+        <Text style={styles.label}>Event Type</Text>
+        <ChipGroup
+          value={form.type}
+          onChange={(v) => update("type", v)}
+          options={["EVENT", "HOLIDAY", "EXAM", "MEETING"]}
+        />
 
-        <Text style={styles.sectionTitle}>Event List</Text>
+        <AppInput
+          label="Event Title"
+          value={form.title}
+          onChangeText={(v) => update("title", v)}
+          placeholder="Example: Annual Day"
+        />
 
-        {app.events.map((event) => (
-          <AdminCard
-            key={event.id}
-            title={event.title}
-            subtitle={(event.description || "") + " • " + (event.eventDate || event.date || "")}
-            status={event.targetRole || "ALL"}
-            icon="calendar-outline"
-          />
-        ))}
+        <AppInput
+          label="Date"
+          value={form.date}
+          onChangeText={(v) => update("date", v)}
+          placeholder="Example: 2026-06-25"
+        />
 
-        <SuccessModal visible={!!success} title="Event" message={success} onClose={() => setSuccess("")} />
-      </ScrollView>
-    </SafeAreaView>
+        <AppInput
+          label="Time"
+          value={form.time}
+          onChangeText={(v) => update("time", v)}
+          placeholder="Example: 10:00 AM"
+        />
+
+        <AppInput
+          label="Description"
+          value={form.description}
+          onChangeText={(v) => update("description", v)}
+          placeholder="Write event details"
+          multiline
+        />
+
+        <InfoBox
+          color={COLORS.accent}
+          text="Event notification will be sent to all users after backend integration."
+        />
+
+        <AppButton title="Create Event" onPress={submit} />
+      </FormCard>
+
+      <FormCard>
+        <FormSectionTitle
+          title="Recent Events"
+          subtitle="Events already created."
+        />
+
+        {events.length === 0 ? (
+          <InfoBox color={COLORS.muted} text="No events created yet." />
+        ) : (
+          events.slice(0, 8).map((item) => (
+            <EventCard key={item.id} item={item} />
+          ))
+        )}
+      </FormCard>
+
+      <SuccessModal
+        visible={!!success}
+        title="Event"
+        message={success}
+        onClose={() => setSuccess("")}
+      />
+    </FormScreenWrapper>
   );
-
 }
 
-const AdminCard = ({ title, subtitle, status, icon = "document-text-outline", children }) => (
-  <View style={styles.card}>
-    <View style={styles.cardTop}>
-      <View style={styles.iconBox}>
-        <Ionicons name={icon} size={22} color={COLORS.primary} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.cardTitle}>{title}</Text>
-        {subtitle ? <Text style={styles.cardSub}>{subtitle}</Text> : null}
-      </View>
-      {status ? <Text style={styles.badge}>{status}</Text> : null}
-    </View>
-    {children ? <View style={{ marginTop: 12 }}>{children}</View> : null}
-  </View>
-);
-
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  content: {
-    padding: 16,
-    paddingBottom: 110,
-  },
-  hero: {
-    backgroundColor: COLORS.navy,
-    borderRadius: 24,
-    padding: 18,
-    marginBottom: 16,
-  },
-  heroTitle: {
-    color: COLORS.white,
-    fontSize: 24,
-    fontWeight: "900",
-  },
-  heroSub: {
-    color: "#CBD5E1",
+  label: {
+    color: COLORS.text,
     fontSize: 13,
-    marginTop: 6,
-    lineHeight: 19,
-  },
-  sectionTitle: {
-    color: COLORS.text,
-    fontSize: 18,
     fontWeight: "900",
-    marginTop: 8,
-    marginBottom: 12,
+    marginBottom: 8,
   },
-  form: {
-    backgroundColor: COLORS.white,
-    borderRadius: 22,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 16,
-  },
-  card: {
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 12,
-  },
-  cardTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  iconBox: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: COLORS.primary + "15",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cardTitle: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "900",
-  },
-  cardSub: {
-    color: COLORS.muted,
+  error: {
+    color: COLORS.danger,
+    backgroundColor: COLORS.dangerLight,
+    padding: 12,
+    borderRadius: 16,
     fontSize: 12,
-    marginTop: 4,
-    lineHeight: 18,
-  },
-  badge: {
-    backgroundColor: COLORS.primary + "18",
-    color: COLORS.primary,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-    fontSize: 10,
-    fontWeight: "900",
-    overflow: "hidden",
-  },
-  row: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  half: {
-    flex: 1,
-  },
-  statGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  statCard: {
-    width: "48%",
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 12,
-  },
-  statValue: {
-    fontSize: 24,
-    color: COLORS.text,
-    fontWeight: "900",
-  },
-  statLabel: {
-    color: COLORS.muted,
-    fontSize: 12,
-    marginTop: 4,
-    fontWeight: "700",
+    fontWeight: "800",
+    marginBottom: 14,
   },
 });

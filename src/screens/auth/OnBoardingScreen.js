@@ -1,30 +1,40 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, SafeAreaView } from "react-native";
+import {
+  SafeAreaView,
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  StatusBar,
+  Dimensions,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import AppButton from "../../components/AppButton";
 import { COLORS } from "../../utils/colors";
+import AppButton from "../../components/AppButton";
+
+const { width } = Dimensions.get("window");
 
 const slides = [
   {
-    icon: "calendar-outline",
-    title: "Plan studies smartly",
-    text: "Manage homework, exams, study plans, revision, daily diary, and tasks.",
+    icon: "people",
+    title: "One Platform for School",
+    text: "Students, teachers, parents and admins stay connected in one simple app.",
   },
   {
-    icon: "people-outline",
-    title: "Connect everyone",
-    text: "Students, teachers, parents, and school admin stay connected in real time.",
+    icon: "book",
+    title: "Homework, Exams & Marks",
+    text: "Teachers assign work, students submit, parents track progress in real time.",
   },
   {
-    icon: "trending-up-outline",
-    title: "Improve performance",
-    text: "Track attendance, marks, behavior, fees, achievements, and progress.",
+    icon: "analytics",
+    title: "Improve Every Day",
+    text: "Track attendance, behavior, fees, doubts, diary, achievements and performance.",
   },
 ];
 
-export default function OnBoardingScreen({ navigation }) {
+export default function OnboardingScreen({ navigation }) {
   const [index, setIndex] = useState(0);
-  const slide = slides[index];
+  const item = slides[index];
 
   const next = () => {
     if (index < slides.length - 1) {
@@ -36,20 +46,44 @@ export default function OnBoardingScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.card}>
-        <Ionicons name={slide.icon} size={86} color={COLORS.primary} />
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.navy} />
 
-        <Text style={styles.title}>{slide.title}</Text>
-        <Text style={styles.text}>{slide.text}</Text>
+      <View style={styles.top}>
+        <View style={styles.circleOne} />
+        <View style={styles.circleTwo} />
 
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={styles.skip}
+          onPress={() => navigation.replace("RoleSelect")}
+        >
+          <Text style={styles.skipText}>Skip</Text>
+        </TouchableOpacity>
+
+        <View style={styles.iconBox}>
+          <Ionicons name={item.icon} size={72} color={COLORS.white} />
+        </View>
+      </View>
+
+      <View style={styles.bottom}>
         <View style={styles.dots}>
           {slides.map((_, i) => (
             <View key={i} style={[styles.dot, i === index && styles.activeDot]} />
           ))}
         </View>
 
+        <Text style={styles.title}>{item.title}</Text>
+        <Text style={styles.text}>{item.text}</Text>
+
         <AppButton title={index === slides.length - 1 ? "Get Started" : "Next"} onPress={next} />
-        <AppButton title="Skip" variant="outline" onPress={() => navigation.replace("RoleSelect")} />
+
+        {index > 0 ? (
+          <AppButton
+            title="Back"
+            variant="ghost"
+            onPress={() => setIndex(index - 1)}
+          />
+        ) : null}
       </View>
     </SafeAreaView>
   );
@@ -59,44 +93,93 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: COLORS.background,
-    padding: 20,
-    justifyContent: "center",
   },
-  card: {
-    backgroundColor: COLORS.white,
-    borderRadius: 30,
-    padding: 24,
+  top: {
+    height: "52%",
+    backgroundColor: COLORS.navy,
+    borderBottomLeftRadius: 38,
+    borderBottomRightRadius: 38,
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    justifyContent: "center",
+    overflow: "hidden",
   },
-  title: {
-    fontSize: 26,
-    color: COLORS.text,
+  circleOne: {
+    position: "absolute",
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    right: -80,
+    top: -80,
+    backgroundColor: "rgba(79, 70, 229, 0.42)",
+  },
+  circleTwo: {
+    position: "absolute",
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    left: -90,
+    bottom: -70,
+    backgroundColor: "rgba(6, 182, 212, 0.24)",
+  },
+  skip: {
+    position: "absolute",
+    top: 18,
+    right: 18,
+    backgroundColor: "rgba(255,255,255,0.14)",
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 999,
+  },
+  skipText: {
+    color: COLORS.white,
+    fontSize: 13,
     fontWeight: "900",
-    textAlign: "center",
-    marginTop: 24,
   },
-  text: {
-    fontSize: 15,
-    color: COLORS.muted,
-    textAlign: "center",
-    lineHeight: 22,
-    marginVertical: 14,
+  iconBox: {
+    width: width * 0.48,
+    height: width * 0.48,
+    borderRadius: 44,
+    backgroundColor: COLORS.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
+  },
+  bottom: {
+    flex: 1,
+    padding: 22,
+    justifyContent: "center",
   },
   dots: {
     flexDirection: "row",
-    marginVertical: 18,
+    justifyContent: "center",
+    gap: 8,
+    marginBottom: 22,
   },
   dot: {
     width: 9,
     height: 9,
-    borderRadius: 99,
+    borderRadius: 9,
     backgroundColor: COLORS.border,
-    marginHorizontal: 4,
   },
   activeDot: {
-    width: 24,
+    width: 28,
     backgroundColor: COLORS.primary,
+  },
+  title: {
+    color: COLORS.text,
+    fontSize: 28,
+    fontWeight: "900",
+    textAlign: "center",
+    lineHeight: 34,
+  },
+  text: {
+    color: COLORS.muted,
+    fontSize: 14,
+    fontWeight: "700",
+    textAlign: "center",
+    lineHeight: 22,
+    marginTop: 12,
+    marginBottom: 20,
   },
 });

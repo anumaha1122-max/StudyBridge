@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React from "react";
 import {
   SafeAreaView,
   ScrollView,
@@ -6,99 +6,147 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../../utils/colors";
 import { useApp } from "../../context/AppContext";
 import { useAuth } from "../../context/AuthContext";
-import AppHeader from "../../components/AppHeader";
-import AppInput from "../../components/AppInput";
-import AppButton from "../../components/AppButton";
-import SuccessModal from "../../components/SuccessModal";
 
-export default function TeacherDashboardScreen({ navigation, route }) {
+export default function TeacherDashboardScreen({ navigation }) {
   const app = useApp();
-  const { currentUser, logout } = useAuth();
-  const [success, setSuccess] = useState("");
+  const { currentUser } = useAuth();
+
   
-  const dashboard = app.getTeacherDashboard ? app.getTeacherDashboard(currentUser?.teacherId || 1) : {
-    totalStudents: app.students.length,
-    pendingHomeworkReviews: app.homeworkSubmissions.filter((s) => s.status !== "REVIEWED").length,
-    pendingLeaveRequests: app.leaveRequests.filter((l) => l.status === "REQUESTED").length,
-    pendingMeetingRequests: app.meetings.filter((m) => m.status === "REQUESTED").length,
-    pendingDoubts: app.doubts.filter((d) => d.status === "PENDING").length,
-  };
+  const teacherId = currentUser?.teacherId || 1;
 
-  const quick = [
-    ["My Classes", "TeacherClasses", "school-outline"],
-    ["Students", "StudentList", "people-outline"],
-    ["Assign Homework", "AssignHomework", "book-outline"],
-    ["Review Submissions", "HomeworkSubmissions", "documents-outline"],
-    ["Attendance", "Attendance", "calendar-outline"],
-    ["Create Exam", "CreateExam", "create-outline"],
-    ["Upload Marks", "UploadMarks", "bar-chart-outline"],
-    ["Upload Notes", "UploadNotes", "cloud-upload-outline"],
-    ["Doubts", "TeacherDoubtBoard", "help-circle-outline"],
-    ["Meetings", "TeacherMeetingRequests", "people-circle-outline"],
+  const dashboard = app.getTeacherDashboard
+    ? app.getTeacherDashboard(teacherId)
+    : {
+        totalStudents: app.students?.length || 0,
+        pendingHomeworkReviews: app.homeworkSubmissions?.filter((s) => s.status !== "REVIEWED").length || 0,
+        pendingLeaveRequests: app.leaveRequests?.filter((l) => l.status === "REQUESTED").length || 0,
+        pendingDoubts: app.doubts?.filter((d) => d.status === "PENDING").length || 0,
+      };
+
+  const notifications = app.notifications?.filter((n) => n.userRole === "TEACHER") || [];
+
+  const quickActions = [
+    {
+      title: "My Classes",
+      subtitle: "View assigned classes and students",
+      icon: "school-outline",
+      route: "TeacherClasses",
+      color: COLORS.secondary,
+    },
+    {
+      title: "Assign Homework",
+      subtitle: "Create homework for students",
+      icon: "book-outline",
+      route: "AssignHomework",
+      color: COLORS.primary,
+      badge: String(app.homework?.length || 0),
+    },
+    {
+      title: "Review Submissions",
+      subtitle: "Check and review student work",
+      icon: "documents-outline",
+      route: "HomeworkSubmissions",
+      color: COLORS.warning,
+      badge: String(dashboard.pendingHomeworkReviews || 0),
+    },
+    {
+      title: "Attendance",
+      subtitle: "Mark present, absent, late or leave",
+      icon: "calendar-outline",
+      route: "Attendance",
+      color: COLORS.success,
+    },
+    {
+      title: "Upload Marks",
+      subtitle: "Add exam marks and remarks",
+      icon: "bar-chart-outline",
+      route: "UploadMarks",
+      color: COLORS.purple,
+    },
+    {
+      title: "Doubt Board",
+      subtitle: "Answer student doubts",
+      icon: "help-circle-outline",
+      route: "TeacherDoubtBoard",
+      color: COLORS.accent,
+      badge: String(dashboard.pendingDoubts || 0),
+    },
   ];
-
-  const notifications = app.notifications.filter((n) => n.userRole === "TEACHER");
 
   return (
     <SafeAreaView style={styles.safe}>
-      <AppHeader title="Teacher Dashboard" navigation={navigation} showBack={false} />
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.navy} />
 
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
-          <Text style={styles.heroTitle}>Welcome, {currentUser?.name || "Teacher"}</Text>
+          <View style={styles.heroCircleOne} />
+          <View style={styles.heroCircleTwo} />
+
+          <View style={styles.heroTop}>
+            <View style={styles.logoBox}>
+              <Ionicons name="library-outline" size={30} color={COLORS.white} />
+            </View>
+
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={styles.notificationBtn}
+              onPress={() => navigation.navigate("TeacherNotifications")}
+            >
+              <Ionicons name="notifications-outline" size={22} color={COLORS.white} />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.heroTitle}>Hello, {currentUser?.name || "Teacher"}</Text>
           <Text style={styles.heroSub}>
-            Manage classes, homework, attendance, marks, notes, doubts, diary and parent requests.
+            Manage homework, attendance, marks, notes, doubts, diary and parent requests.
           </Text>
+
+          <View style={styles.rolePill}>
+            <Text style={styles.rolePillText}>TEACHER DASHBOARD</Text>
+          </View>
         </View>
 
         <View style={styles.statGrid}>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{dashboard.totalStudents}</Text>
-            <Text style={styles.statLabel}>Students</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{dashboard.pendingHomeworkReviews}</Text>
-            <Text style={styles.statLabel}>Pending Reviews</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{dashboard.pendingLeaveRequests}</Text>
-            <Text style={styles.statLabel}>Leave Requests</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{dashboard.pendingDoubts}</Text>
-            <Text style={styles.statLabel}>Doubts</Text>
-          </View>
+          <StatBox value={dashboard.totalStudents} label="Students" icon="people-outline" tone={COLORS.secondary} />
+          <StatBox value={dashboard.pendingHomeworkReviews} label="Pending Reviews" icon="documents-outline" tone={COLORS.warning} />
+          <StatBox value={dashboard.pendingLeaveRequests} label="Leave Requests" icon="mail-outline" tone={COLORS.danger} />
+          <StatBox value={dashboard.pendingDoubts} label="Student Doubts" icon="help-circle-outline" tone={COLORS.accent} />
         </View>
 
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        <SectionTitle title="Teaching Tools" action="Students" onPress={() => navigation.navigate("StudentList")} />
 
-        {quick.map((item) => (
-          <TCard
-            key={item[1]}
-            title={item[0]}
-            subtitle="Open teacher module"
-            icon={item[2]}
-            onPress={() => navigation.navigate(item[1])}
+        {quickActions.map((item) => (
+          <QuickCard
+            key={item.route}
+            title={item.title}
+            subtitle={item.subtitle}
+            icon={item.icon}
+            color={item.color}
+            badge={item.badge}
+            onPress={() => navigation.navigate(item.route)}
           />
         ))}
 
-        <Text style={styles.sectionTitle}>Notifications</Text>
+        <SectionTitle title="Recent Updates" action="All" onPress={() => navigation.navigate("TeacherNotifications")} />
 
         {notifications.length === 0 ? (
-          <TCard title="No notifications" subtitle="Teacher alerts will appear here." icon="notifications-outline" />
+          <View style={styles.emptyBox}>
+            <Ionicons name="notifications-off-outline" size={34} color={COLORS.softText} />
+            <Text style={styles.emptyText}>No teacher notifications yet.</Text>
+          </View>
         ) : (
-          notifications.slice(0, 6).map((n) => (
-            <TCard
-              key={n.id}
-              title={n.title}
-              subtitle={n.message}
-              status={n.read ? "READ" : "NEW"}
-              icon="notifications-outline"
+          notifications.slice(0, 5).map((item) => (
+            <ActivityCard
+              key={item.id}
+              title={item.title}
+              message={item.message}
+              status={item.read ? "READ" : "NEW"}
             />
           ))
         )}
@@ -108,40 +156,55 @@ export default function TeacherDashboardScreen({ navigation, route }) {
 
 }
 
-const TCard = ({ title, subtitle, status, icon = "document-text-outline", onPress, children }) => (
-  <TouchableOpacity activeOpacity={onPress ? 0.85 : 1} onPress={onPress} style={styles.card}>
-    <View style={styles.cardTop}>
-      <View style={styles.iconBox}>
-        <Ionicons name={icon} size={22} color={COLORS.primary} />
-      </View>
-
-      <View style={{ flex: 1 }}>
-        <Text style={styles.cardTitle}>{title}</Text>
-        {subtitle ? <Text style={styles.cardSub}>{subtitle}</Text> : null}
-      </View>
-
-      {status ? <Text style={styles.badge}>{status}</Text> : null}
+const StatBox = ({ value, label, icon, tone = COLORS.primary }) => (
+  <View style={styles.statBox}>
+    <View style={[styles.statIcon, { backgroundColor: tone + "18" }]}>
+      <Ionicons name={icon} size={21} color={tone} />
     </View>
-
-    {children ? <View style={{ marginTop: 12 }}>{children}</View> : null}
-  </TouchableOpacity>
-);
-
-const PickerRow = ({ label, children }) => (
-  <View style={{ marginBottom: 12 }}>
-    <Text style={styles.label}>{label}</Text>
-    <View style={styles.chipRow}>{children}</View>
+    <Text numberOfLines={1} style={styles.statValue}>{value}</Text>
+    <Text numberOfLines={2} style={styles.statLabel}>{label}</Text>
   </View>
 );
 
-const Chip = ({ title, active, onPress }) => (
-  <TouchableOpacity
-    activeOpacity={0.85}
-    onPress={onPress}
-    style={[styles.chip, active && styles.activeChip]}
-  >
-    <Text style={[styles.chipText, active && styles.activeChipText]}>{title}</Text>
+const QuickCard = ({ title, subtitle, icon, color = COLORS.primary, onPress, badge }) => (
+  <TouchableOpacity activeOpacity={0.86} style={styles.quickCard} onPress={onPress}>
+    <View style={[styles.quickIcon, { backgroundColor: color + "17" }]}>
+      <Ionicons name={icon} size={23} color={color} />
+    </View>
+
+    <View style={{ flex: 1 }}>
+      <Text numberOfLines={1} style={styles.quickTitle}>{title}</Text>
+      <Text numberOfLines={2} style={styles.quickSub}>{subtitle}</Text>
+    </View>
+
+    {badge ? <Text style={[styles.badge, { color, backgroundColor: color + "14" }]}>{badge}</Text> : null}
+
+    <Ionicons name="chevron-forward" size={20} color={COLORS.softText} />
   </TouchableOpacity>
+);
+
+const ActivityCard = ({ title, message, icon = "notifications-outline", status = "NEW" }) => (
+  <View style={styles.activityCard}>
+    <View style={styles.activityIcon}>
+      <Ionicons name={icon} size={20} color={COLORS.primary} />
+    </View>
+    <View style={{ flex: 1 }}>
+      <Text numberOfLines={1} style={styles.activityTitle}>{title}</Text>
+      <Text numberOfLines={2} style={styles.activityMsg}>{message}</Text>
+    </View>
+    <Text style={styles.statusBadge}>{status}</Text>
+  </View>
+);
+
+const SectionTitle = ({ title, action, onPress }) => (
+  <View style={styles.sectionRow}>
+    <Text style={styles.sectionTitle}>{title}</Text>
+    {action ? (
+      <TouchableOpacity activeOpacity={0.8} onPress={onPress}>
+        <Text style={styles.sectionAction}>{action}</Text>
+      </TouchableOpacity>
+    ) : null}
+  </View>
 );
 
 const styles = StyleSheet.create({
@@ -151,143 +214,237 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-    paddingBottom: 110,
+    paddingBottom: 120,
   },
   hero: {
     backgroundColor: COLORS.navy,
-    borderRadius: 24,
-    padding: 18,
+    borderRadius: 32,
+    padding: 20,
+    minHeight: 210,
+    overflow: "hidden",
     marginBottom: 16,
   },
-  heroTitle: {
-    color: COLORS.white,
-    fontSize: 23,
-    fontWeight: "900",
+  heroCircleOne: {
+    position: "absolute",
+    width: 190,
+    height: 190,
+    borderRadius: 95,
+    right: -62,
+    top: -58,
+    backgroundColor: "#06B6D455",
   },
-  heroSub: {
-    color: "#CBD5E1",
-    marginTop: 6,
-    fontSize: 13,
-    lineHeight: 20,
+  heroCircleTwo: {
+    position: "absolute",
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    left: -55,
+    bottom: -55,
+    backgroundColor: "rgba(6,182,212,0.22)",
   },
-  sectionTitle: {
-    color: COLORS.text,
-    fontSize: 18,
-    fontWeight: "900",
-    marginBottom: 12,
-    marginTop: 8,
-  },
-  form: {
-    backgroundColor: COLORS.white,
-    borderRadius: 22,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 16,
-  },
-  card: {
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 12,
-  },
-  cardTop: {
+  heroTop: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    justifyContent: "space-between",
   },
-  iconBox: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: COLORS.primary + "15",
+  logoBox: {
+    width: 56,
+    height: 56,
+    borderRadius: 20,
+    backgroundColor: "#06B6D4",
     alignItems: "center",
     justifyContent: "center",
   },
-  cardTitle: {
+  notificationBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.13)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  heroTitle: {
+    color: COLORS.white,
+    fontSize: 27,
+    fontWeight: "900",
+    marginTop: 22,
+    lineHeight: 34,
+  },
+  heroSub: {
+    color: "#CBD5E1",
+    fontSize: 13,
+    fontWeight: "700",
+    lineHeight: 20,
+    marginTop: 8,
+  },
+  rolePill: {
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(255,255,255,0.14)",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    marginTop: 14,
+  },
+  rolePillText: {
+    color: COLORS.white,
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 0.3,
+  },
+  statGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  statBox: {
+    width: "48%",
+    backgroundColor: COLORS.white,
+    borderRadius: 24,
+    padding: 15,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: 12,
+    shadowColor: COLORS.navy,
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 2,
+  },
+  statIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  statValue: {
+    color: COLORS.text,
+    fontSize: 24,
+    fontWeight: "900",
+  },
+  statLabel: {
+    color: COLORS.muted,
+    fontSize: 12,
+    fontWeight: "800",
+    lineHeight: 17,
+    marginTop: 4,
+  },
+  sectionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    color: COLORS.text,
+    fontSize: 19,
+    fontWeight: "900",
+  },
+  sectionAction: {
+    color: "#06B6D4",
+    fontSize: 13,
+    fontWeight: "900",
+  },
+  quickCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 22,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 12,
+    shadowColor: COLORS.navy,
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 2,
+  },
+  quickIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  quickTitle: {
     color: COLORS.text,
     fontSize: 15,
     fontWeight: "900",
   },
-  cardSub: {
+  quickSub: {
     color: COLORS.muted,
     fontSize: 12,
-    marginTop: 4,
+    fontWeight: "700",
     lineHeight: 18,
+    marginTop: 4,
   },
   badge: {
-    backgroundColor: COLORS.primary + "18",
-    color: COLORS.primary,
-    paddingHorizontal: 10,
+    paddingHorizontal: 9,
     paddingVertical: 5,
     borderRadius: 999,
     fontSize: 10,
     fontWeight: "900",
     overflow: "hidden",
   },
-  row: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  half: {
-    flex: 1,
-  },
-  statGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  statCard: {
-    width: "48%",
+  activityCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
+    borderRadius: 20,
+    padding: 13,
     borderWidth: 1,
     borderColor: COLORS.border,
-    marginBottom: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 11,
+    marginBottom: 10,
   },
-  statValue: {
-    fontSize: 24,
+  activityIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 15,
+    backgroundColor: COLORS.primaryLight,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  activityTitle: {
     color: COLORS.text,
+    fontSize: 14,
     fontWeight: "900",
   },
-  statLabel: {
+  activityMsg: {
     color: COLORS.muted,
     fontSize: 12,
-    marginTop: 4,
     fontWeight: "700",
+    lineHeight: 18,
+    marginTop: 3,
   },
-  label: {
-    color: COLORS.text,
-    fontSize: 13,
+  statusBadge: {
+    backgroundColor: COLORS.warningLight,
+    color: COLORS.warning,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    fontSize: 10,
     fontWeight: "900",
-    marginBottom: 8,
+    overflow: "hidden",
   },
-  chipRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  chip: {
+  emptyBox: {
+    backgroundColor: COLORS.white,
+    borderRadius: 22,
+    padding: 20,
+    alignItems: "center",
     borderWidth: 1,
     borderColor: COLORS.border,
-    backgroundColor: COLORS.white,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
   },
-  activeChip: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  chipText: {
-    color: COLORS.text,
-    fontSize: 12,
+  emptyText: {
+    color: COLORS.muted,
+    fontSize: 13,
     fontWeight: "800",
-  },
-  activeChipText: {
-    color: COLORS.white,
+    marginTop: 8,
+    textAlign: "center",
   },
 });

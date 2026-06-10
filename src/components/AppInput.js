@@ -1,16 +1,43 @@
 import React from "react";
-import { View, Text, TextInput, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+} from "react-native";
 import { COLORS } from "../utils/colors";
 
-export default function AppInput({ label, error, style, inputStyle, ...props }) {
+export default function AppInput({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  secureTextEntry,
+  keyboardType,
+  multiline = false,
+  editable = true,
+  error,
+  style,
+}) {
   return (
-    <View style={[styles.wrapper, style]}>
+    <View style={[styles.wrap, style]}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
 
       <TextInput
-        placeholderTextColor={COLORS.muted}
-        style={[styles.input, error && styles.errorBorder, inputStyle]}
-        {...props}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={COLORS.softText}
+        secureTextEntry={secureTextEntry}
+        keyboardType={keyboardType}
+        multiline={multiline}
+        editable={editable}
+        style={[
+          styles.input,
+          multiline && styles.multiline,
+          !editable && styles.disabled,
+          error && styles.errorInput,
+        ]}
       />
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -19,32 +46,44 @@ export default function AppInput({ label, error, style, inputStyle, ...props }) 
 }
 
 const styles = StyleSheet.create({
-  wrapper: {
-    marginBottom: 12,
+  wrap: {
+    marginBottom: 14,
   },
   label: {
-    fontSize: 13,
     color: COLORS.text,
-    fontWeight: "800",
-    marginBottom: 6,
+    fontSize: 13,
+    fontWeight: "900",
+    marginBottom: 8,
   },
   input: {
-    backgroundColor: COLORS.white,
-    borderWidth: 1,
+    minHeight: 50,
+    borderRadius: 18,
+    borderWidth: 1.2,
     borderColor: COLORS.border,
-    borderRadius: 14,
-    minHeight: 48,
-    paddingHorizontal: 14,
+    backgroundColor: COLORS.white,
+    paddingHorizontal: 15,
     color: COLORS.text,
     fontSize: 14,
+    fontWeight: "700",
   },
-  errorBorder: {
+  multiline: {
+    minHeight: 98,
+    paddingTop: 13,
+    textAlignVertical: "top",
+    lineHeight: 20,
+  },
+  disabled: {
+    backgroundColor: COLORS.background2,
+    color: COLORS.muted,
+  },
+  errorInput: {
     borderColor: COLORS.danger,
+    backgroundColor: COLORS.dangerLight,
   },
   error: {
-    marginTop: 5,
     color: COLORS.danger,
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: "800",
+    marginTop: 6,
   },
 });

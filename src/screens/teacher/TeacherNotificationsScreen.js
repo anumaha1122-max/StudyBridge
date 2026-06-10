@@ -1,237 +1,62 @@
-import React, { useMemo, useState } from "react";
-import {
-  SafeAreaView,
-  ScrollView,
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import React from "react";
 import { COLORS } from "../../utils/colors";
 import { useApp } from "../../context/AppContext";
 import { useAuth } from "../../context/AuthContext";
-import AppHeader from "../../components/AppHeader";
-import AppInput from "../../components/AppInput";
-import AppButton from "../../components/AppButton";
-import SuccessModal from "../../components/SuccessModal";
+import NotificationScreenWrapper from "../../components/NotificationScreenWrapper";
 
-export default function TeacherNotificationsScreen({ navigation, route }) {
+export default function TeacherNotificationsScreen({ navigation }) {
   const app = useApp();
-  const { currentUser, logout } = useAuth();
-  const [success, setSuccess] = useState("");
-  
-  const notifications = app.notifications.filter((n) => n.userRole === "TEACHER");
+  const { currentUser } = useAuth();
+
+  const roleNotifications =
+    app.notifications?.filter((item) => {
+      if (item.userRole !== "TEACHER") return false;
+
+      if (!item.userId) return true;
+
+      if ("TEACHER" === "STUDENT") {
+        return item.userId === (currentUser?.studentId || currentUser?.id || 1);
+      }
+
+      if ("TEACHER" === "PARENT") {
+        return item.userId === (currentUser?.parentId || currentUser?.id || 1);
+      }
+
+      if ("TEACHER" === "TEACHER") {
+        return item.userId === (currentUser?.teacherId || currentUser?.id || 1);
+      }
+
+      return true;
+    }) || [];
+
+  const markRead = (id) => {
+    if (app.markNotificationRead) {
+      app.markNotificationRead(id);
+    }
+  };
+
+  const markAllRead = () => {
+    if (app.markAllNotificationsRead) {
+      app.markAllNotificationsRead("TEACHER", currentUser?.id);
+    } else if (app.notifications && app.setNotifications) {
+      const updated = app.notifications.map((item) =>
+        item.userRole === "TEACHER" ? { ...item, read: true } : item
+      );
+      app.setNotifications(updated);
+    }
+  };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <AppHeader title="Notifications" navigation={navigation} />
-
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
-          <Text style={styles.heroTitle}>Notifications</Text>
-          <Text style={styles.heroSub}>Homework submissions, doubts, leave and meeting alerts.</Text>
-        </View>
-
-        {notifications.length === 0 ? (
-          <TCard title="No notifications" subtitle="Teacher updates will appear here." icon="notifications-outline" />
-        ) : (
-          notifications.map((n) => (
-            <TCard
-              key={n.id}
-              title={n.title}
-              subtitle={n.message}
-              status={n.read ? "READ" : "NEW"}
-              icon="notifications-outline"
-            />
-          ))
-        )}
-      </ScrollView>
-    </SafeAreaView>
+    <NotificationScreenWrapper
+      navigation={navigation}
+      role="TEACHER"
+      title="Teacher Notifications"
+      subtitle="Homework submissions, doubts, meetings, leave requests and class updates."
+      icon="library-outline"
+      color="#06B6D4"
+      notifications={roleNotifications}
+      onMarkRead={markRead}
+      onMarkAllRead={markAllRead}
+    />
   );
-
 }
-
-const TCard = ({ title, subtitle, status, icon = "document-text-outline", onPress, children }) => (
-  <TouchableOpacity activeOpacity={onPress ? 0.85 : 1} onPress={onPress} style={styles.card}>
-    <View style={styles.cardTop}>
-      <View style={styles.iconBox}>
-        <Ionicons name={icon} size={22} color={COLORS.primary} />
-      </View>
-
-      <View style={{ flex: 1 }}>
-        <Text style={styles.cardTitle}>{title}</Text>
-        {subtitle ? <Text style={styles.cardSub}>{subtitle}</Text> : null}
-      </View>
-
-      {status ? <Text style={styles.badge}>{status}</Text> : null}
-    </View>
-
-    {children ? <View style={{ marginTop: 12 }}>{children}</View> : null}
-  </TouchableOpacity>
-);
-
-const PickerRow = ({ label, children }) => (
-  <View style={{ marginBottom: 12 }}>
-    <Text style={styles.label}>{label}</Text>
-    <View style={styles.chipRow}>{children}</View>
-  </View>
-);
-
-const Chip = ({ title, active, onPress }) => (
-  <TouchableOpacity
-    activeOpacity={0.85}
-    onPress={onPress}
-    style={[styles.chip, active && styles.activeChip]}
-  >
-    <Text style={[styles.chipText, active && styles.activeChipText]}>{title}</Text>
-  </TouchableOpacity>
-);
-
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  content: {
-    padding: 16,
-    paddingBottom: 110,
-  },
-  hero: {
-    backgroundColor: COLORS.navy,
-    borderRadius: 24,
-    padding: 18,
-    marginBottom: 16,
-  },
-  heroTitle: {
-    color: COLORS.white,
-    fontSize: 23,
-    fontWeight: "900",
-  },
-  heroSub: {
-    color: "#CBD5E1",
-    marginTop: 6,
-    fontSize: 13,
-    lineHeight: 20,
-  },
-  sectionTitle: {
-    color: COLORS.text,
-    fontSize: 18,
-    fontWeight: "900",
-    marginBottom: 12,
-    marginTop: 8,
-  },
-  form: {
-    backgroundColor: COLORS.white,
-    borderRadius: 22,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 16,
-  },
-  card: {
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 12,
-  },
-  cardTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  iconBox: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: COLORS.primary + "15",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cardTitle: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "900",
-  },
-  cardSub: {
-    color: COLORS.muted,
-    fontSize: 12,
-    marginTop: 4,
-    lineHeight: 18,
-  },
-  badge: {
-    backgroundColor: COLORS.primary + "18",
-    color: COLORS.primary,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-    fontSize: 10,
-    fontWeight: "900",
-    overflow: "hidden",
-  },
-  row: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  half: {
-    flex: 1,
-  },
-  statGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  statCard: {
-    width: "48%",
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 12,
-  },
-  statValue: {
-    fontSize: 24,
-    color: COLORS.text,
-    fontWeight: "900",
-  },
-  statLabel: {
-    color: COLORS.muted,
-    fontSize: 12,
-    marginTop: 4,
-    fontWeight: "700",
-  },
-  label: {
-    color: COLORS.text,
-    fontSize: 13,
-    fontWeight: "900",
-    marginBottom: 8,
-  },
-  chipRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  chip: {
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.white,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  activeChip: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  chipText: {
-    color: COLORS.text,
-    fontSize: 12,
-    fontWeight: "800",
-  },
-  activeChipText: {
-    color: COLORS.white,
-  },
-});

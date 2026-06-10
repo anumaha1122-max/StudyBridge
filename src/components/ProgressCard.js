@@ -1,14 +1,33 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+} from "react-native";
 import { COLORS } from "../utils/colors";
-import StatusBadge from "./StatusBadge";
 
-export default function ProgressCard({ title = "ProgressCard", subtitle = "Ready for backend integration", status }) {
+export default function ProgressCard({
+  title = "Progress",
+  value = 0,
+  subtitle = "",
+  color = COLORS.primary,
+}) {
+  const safeValue = Math.max(0, Math.min(100, Number(value) || 0));
+
   return (
     <View style={styles.card}>
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.subtitle}>{subtitle}</Text>
-      {status ? <StatusBadge status={status} /> : null}
+      <View style={styles.row}>
+        <View>
+          <Text style={styles.title}>{title}</Text>
+          {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+        </View>
+
+        <Text style={[styles.value, { color }]}>{safeValue}%</Text>
+      </View>
+
+      <View style={styles.track}>
+        <View style={[styles.fill, { width: safeValue + "%", backgroundColor: color }]} />
+      </View>
     </View>
   );
 }
@@ -16,11 +35,18 @@ export default function ProgressCard({ title = "ProgressCard", subtitle = "Ready
 const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    marginBottom: 10,
+    borderRadius: 24,
+    padding: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
+    marginBottom: 12,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+    marginBottom: 12,
   },
   title: {
     color: COLORS.text,
@@ -30,7 +56,21 @@ const styles = StyleSheet.create({
   subtitle: {
     color: COLORS.muted,
     fontSize: 12,
-    marginTop: 5,
-    marginBottom: 8,
+    fontWeight: "700",
+    marginTop: 4,
+  },
+  value: {
+    fontSize: 20,
+    fontWeight: "900",
+  },
+  track: {
+    height: 10,
+    backgroundColor: COLORS.background2,
+    borderRadius: 999,
+    overflow: "hidden",
+  },
+  fill: {
+    height: "100%",
+    borderRadius: 999,
   },
 });

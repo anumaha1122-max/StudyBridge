@@ -1,36 +1,83 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+} from "react-native";
 import { COLORS } from "../utils/colors";
-import StatusBadge from "./StatusBadge";
 
-export default function LoadingView({ title = "LoadingView", subtitle = "Ready for backend integration", status }) {
+export default function LoadingView({
+  message = "Loading...",
+  color = COLORS.primary,
+}) {
   return (
-    <View style={styles.card}>
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.subtitle}>{subtitle}</Text>
-      {status ? <StatusBadge status={status} /> : null}
+    <View style={styles.container}>
+      <View style={styles.loaderBox}>
+        <ActivityIndicator size="large" color={color} />
+      </View>
+
+      <Text style={styles.message}>{message}</Text>
+    </View>
+  );
+}
+
+export function FullScreenLoading({
+  message = "Preparing your data...",
+  color = COLORS.primary,
+}) {
+  return (
+    <View style={styles.full}>
+      <View style={styles.card}>
+        <View style={styles.loaderBox}>
+          <ActivityIndicator size="large" color={color} />
+        </View>
+        <Text style={styles.message}>{message}</Text>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
+  full: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+  },
+  container: {
     backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    marginBottom: 10,
+    borderRadius: 28,
+    padding: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginVertical: 12,
+  },
+  card: {
+    width: "100%",
+    backgroundColor: COLORS.white,
+    borderRadius: 30,
+    padding: 30,
+    alignItems: "center",
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  title: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "900",
+  loaderBox: {
+    width: 74,
+    height: 74,
+    borderRadius: 26,
+    backgroundColor: COLORS.primaryLight,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 14,
   },
-  subtitle: {
-    color: COLORS.muted,
-    fontSize: 12,
-    marginTop: 5,
-    marginBottom: 8,
+  message: {
+    color: COLORS.text,
+    fontSize: 14,
+    fontWeight: "900",
+    textAlign: "center",
   },
 });
