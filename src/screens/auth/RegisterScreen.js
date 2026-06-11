@@ -1,100 +1,93 @@
 import React, { useMemo, useState } from "react";
 import {
-  SafeAreaView,
-  ScrollView,
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
+  SafeAreaView,
   StatusBar,
+  TextInput,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../../utils/colors";
 import { useAuth } from "../../context/AuthContext";
-import AppInput from "../../components/AppInput";
-import AppButton from "../../components/AppButton";
-import SuccessModal from "../../components/SuccessModal";
 
-const roles = ["STUDENT", "TEACHER", "PARENT", "ADMIN"];
+const roleInfo = {
+  ADMIN: {
+    title: "Admin Register",
+    color: "#7C3AED",
+    icon: "shield-checkmark-outline",
+  },
+  TEACHER: {
+    title: "Teacher Register",
+    color: "#06B6D4",
+    icon: "school-outline",
+  },
+  STUDENT: {
+    title: "Student Register",
+    color: "#4F46E5",
+    icon: "book-outline",
+  },
+  PARENT: {
+    title: "Parent Register",
+    color: "#16A34A",
+    icon: "people-outline",
+  },
+};
 
 export default function RegisterScreen({ navigation, route }) {
-  const { register, selectedRole, setSelectedRole } = useAuth();
+  const { register, selectedRole, selectRole } = useAuth();
 
-  const initialRole = route?.params?.role || selectedRole || "STUDENT";
+  const role = route?.params?.role || selectedRole || "STUDENT";
 
-  const [role, setRole] = useState(initialRole);
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    password: "",
-    confirm: "",
-  });
-
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const roleTitle = useMemo(() => {
-    if (role === "STUDENT") return "Student Registration";
-    if (role === "TEACHER") return "Teacher Registration";
-    if (role === "PARENT") return "Parent Registration";
-    return "Admin Registration";
+  const info = useMemo(() => {
+    return roleInfo[role] || roleInfo.STUDENT;
   }, [role]);
 
-  const changeRole = (nextRole) => {
-    setRole(nextRole);
-    if (setSelectedRole) {
-      setSelectedRole(nextRole);
-    }
-  };
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("123456");
+  const [secure, setSecure] = useState(true);
+  const [error, setError] = useState("");
 
-  const update = (key, value) => {
-    setForm({
-      ...form,
-      [key]: value,
-    });
+  const changeRole = (newRole) => {
+    selectRole(newRole);
+    setError("");
+    navigation.setParams({ role: newRole });
   };
 
   const submit = async () => {
-    if (!form.name || !form.email || !form.phone || !form.password) {
-      setError("Please fill all required fields.");
+    if (!name || !email || !password) {
+      setError("Please fill name, email and password.");
       return;
     }
 
-    if (form.password !== form.confirm) {
-      setError("Passwords do not match.");
-      return;
-    }
-
-    setLoading(true);
-    setError("");
-
-    const response = await register({
-      name: form.name,
-      email: form.email,
-      phone: form.phone,
-      password: form.password,
+    const result = await register({
+      name,
+      email,
+      phone,
+      password,
       role,
     });
 
-    setLoading(false);
-
-    if (!response?.success) {
-      setError(response?.message || "Registration failed.");
-      return;
+    if (!result.success) {
+      setError(result.message || "Register failed.");
     }
-
-    setSuccess("Account created successfully. You can now login.");
   };
 
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.navy} />
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.hero}>
-          <View style={styles.circleOne} />
+          <View style={[styles.circleOne, { backgroundColor: info.color + "55" }]} />
           <View style={styles.circleTwo} />
 
           <TouchableOpacity
@@ -102,105 +95,135 @@ export default function RegisterScreen({ navigation, route }) {
             style={styles.backBtn}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="chevron-back" size={22} color={COLORS.white} />
+            <Ionicons name="chevron-back" size={23} color={COLORS.white} />
           </TouchableOpacity>
 
-          <View style={styles.logo}>
-            <Ionicons name="person-add-outline" size={36} color={COLORS.white} />
+          <View style={[styles.heroIcon, { backgroundColor: info.color }]}>
+            <Ionicons name={info.icon} size={36} color={COLORS.white} />
           </View>
 
-          <Text style={styles.heroTitle}>{roleTitle}</Text>
+          <Text style={styles.heroTitle}>{info.title}</Text>
           <Text style={styles.heroSub}>
-            Create your StudyBridge account and start managing school activities.
+            Create your StudyBridge account.
           </Text>
         </View>
 
-        <View style={styles.roleRow}>
-          {roles.map((item) => (
-            <TouchableOpacity
-              key={item}
-              activeOpacity={0.85}
-              style={[styles.roleChip, role === item && styles.activeChip]}
-              onPress={() => changeRole(item)}
-            >
-              <Text style={[styles.roleChipText, role === item && styles.activeChipText]}>
-                {item}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
         <View style={styles.form}>
-          {error ? (
-            <View style={styles.errorBox}>
-              <Ionicons name="alert-circle-outline" size={20} color={COLORS.danger} />
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          ) : null}
+          <View style={styles.roleRow}>
+            {Object.keys(roleInfo).map((item) => (
+              <TouchableOpacity
+                key={item}
+                activeOpacity={0.85}
+                style={[
+                  styles.roleChip,
+                  role === item && {
+                    backgroundColor: roleInfo[item].color,
+                    borderColor: roleInfo[item].color,
+                  },
+                ]}
+                onPress={() => changeRole(item)}
+              >
+                <Text style={[styles.roleText, role === item && styles.roleTextActive]}>
+                  {item}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
 
-          <AppInput
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+
+          <Input
             label="Full Name"
-            value={form.name}
-            onChangeText={(v) => update("name", v)}
-            placeholder="Enter full name"
+            icon="person-outline"
+            value={name}
+            onChangeText={setName}
+            placeholder="Enter name"
           />
 
-          <AppInput
-            label="Email Address"
-            value={form.email}
-            onChangeText={(v) => update("email", v)}
+          <Input
+            label="Email"
+            icon="mail-outline"
+            value={email}
+            onChangeText={setEmail}
             placeholder="Enter email"
             keyboardType="email-address"
           />
 
-          <AppInput
-            label="Phone Number"
-            value={form.phone}
-            onChangeText={(v) => update("phone", v)}
-            placeholder="Enter phone number"
+          <Input
+            label="Phone"
+            icon="call-outline"
+            value={phone}
+            onChangeText={setPhone}
+            placeholder="Enter phone"
             keyboardType="phone-pad"
           />
 
-          <AppInput
-            label="Password"
-            value={form.password}
-            onChangeText={(v) => update("password", v)}
-            placeholder="Create password"
-            secureTextEntry
-          />
+          <Text style={styles.label}>Password</Text>
+          <View style={styles.inputBox}>
+            <Ionicons name="lock-closed-outline" size={20} color={COLORS.muted} />
+            <TextInput
+              value={password}
+              onChangeText={setPassword}
+              placeholder="Enter password"
+              placeholderTextColor={COLORS.softText}
+              secureTextEntry={secure}
+              style={styles.input}
+            />
+            <TouchableOpacity onPress={() => setSecure(!secure)}>
+              <Ionicons
+                name={secure ? "eye-outline" : "eye-off-outline"}
+                size={20}
+                color={COLORS.muted}
+              />
+            </TouchableOpacity>
+          </View>
 
-          <AppInput
-            label="Confirm Password"
-            value={form.confirm}
-            onChangeText={(v) => update("confirm", v)}
-            placeholder="Confirm password"
-            secureTextEntry
-          />
+          <TouchableOpacity
+            activeOpacity={0.88}
+            style={[styles.registerBtn, { backgroundColor: info.color }]}
+            onPress={submit}
+          >
+            <Text style={styles.registerText}>Create Account</Text>
+            <Ionicons name="arrow-forward" size={20} color={COLORS.white} />
+          </TouchableOpacity>
 
-          <AppButton title="Create Account" onPress={submit} loading={loading} />
+          <TouchableOpacity
+            activeOpacity={0.85}
+            style={styles.loginLink}
+            onPress={() => navigation.navigate("Login", { role })}
+          >
+            <Text style={styles.loginText}>Already registered? Login</Text>
+          </TouchableOpacity>
         </View>
-
-        <TouchableOpacity
-          activeOpacity={0.85}
-          style={styles.loginLink}
-          onPress={() => navigation.navigate("Login", { role })}
-        >
-          <Text style={styles.loginText}>
-            Already have an account? <Text style={styles.loginBold}>Login</Text>
-          </Text>
-        </TouchableOpacity>
-
-        <SuccessModal
-          visible={!!success}
-          title="Registration"
-          message={success}
-          onClose={() => {
-            setSuccess("");
-            navigation.navigate("Login", { role });
-          }}
-        />
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function Input({
+  label,
+  icon,
+  value,
+  onChangeText,
+  placeholder,
+  keyboardType = "default",
+}) {
+  return (
+    <>
+      <Text style={styles.label}>{label}</Text>
+      <View style={styles.inputBox}>
+        <Ionicons name={icon} size={20} color={COLORS.muted} />
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={COLORS.softText}
+          keyboardType={keyboardType}
+          autoCapitalize="none"
+          style={styles.input}
+        />
+      </View>
+    </>
   );
 }
 
@@ -210,40 +233,38 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   content: {
-    padding: 16,
-    paddingBottom: 36,
+    paddingBottom: 40,
   },
   hero: {
     backgroundColor: COLORS.navy,
-    borderRadius: 32,
+    minHeight: 260,
+    borderBottomLeftRadius: 36,
+    borderBottomRightRadius: 36,
     padding: 22,
-    minHeight: 230,
     justifyContent: "flex-end",
     overflow: "hidden",
-    marginBottom: 18,
   },
   circleOne: {
     position: "absolute",
-    width: 180,
-    height: 180,
-    borderRadius: 90,
+    width: 190,
+    height: 190,
+    borderRadius: 95,
     right: -55,
-    top: -45,
-    backgroundColor: "rgba(79,70,229,0.46)",
+    top: -55,
   },
   circleTwo: {
     position: "absolute",
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    left: -52,
-    bottom: -55,
-    backgroundColor: "rgba(6,182,212,0.25)",
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    left: -55,
+    bottom: -45,
+    backgroundColor: "rgba(6,182,212,0.20)",
   },
   backBtn: {
     position: "absolute",
-    top: 16,
-    left: 16,
+    top: 18,
+    left: 18,
     width: 42,
     height: 42,
     borderRadius: 16,
@@ -251,18 +272,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  logo: {
-    width: 72,
-    height: 72,
-    borderRadius: 24,
-    backgroundColor: COLORS.primary,
+  heroIcon: {
+    width: 76,
+    height: 76,
+    borderRadius: 26,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 16,
   },
   heroTitle: {
     color: COLORS.white,
-    fontSize: 28,
+    fontSize: 31,
     fontWeight: "900",
   },
   heroSub: {
@@ -272,11 +292,14 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginTop: 8,
   },
+  form: {
+    padding: 20,
+  },
   roleRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
-    marginBottom: 14,
+    marginBottom: 16,
   },
   roleChip: {
     paddingHorizontal: 12,
@@ -286,52 +309,70 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  activeChip: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  roleChipText: {
+  roleText: {
     color: COLORS.text,
     fontSize: 11,
     fontWeight: "900",
   },
-  activeChipText: {
+  roleTextActive: {
     color: COLORS.white,
   },
-  form: {
-    backgroundColor: COLORS.white,
-    borderRadius: 28,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  errorBox: {
-    backgroundColor: COLORS.dangerLight,
-    borderRadius: 16,
-    padding: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 9,
-    marginBottom: 14,
-  },
-  errorText: {
-    flex: 1,
+  error: {
     color: COLORS.danger,
+    backgroundColor: COLORS.dangerLight,
+    padding: 12,
+    borderRadius: 16,
     fontSize: 12,
     fontWeight: "800",
-    lineHeight: 18,
+    marginBottom: 14,
+  },
+  label: {
+    color: COLORS.text,
+    fontSize: 13,
+    fontWeight: "900",
+    marginBottom: 8,
+    marginTop: 8,
+  },
+  inputBox: {
+    height: 56,
+    backgroundColor: COLORS.white,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    gap: 10,
+    marginBottom: 10,
+  },
+  input: {
+    flex: 1,
+    color: COLORS.text,
+    fontSize: 14,
+    fontWeight: "800",
+    outlineStyle: "none",
+  },
+  registerBtn: {
+    height: 56,
+    borderRadius: 18,
+    marginTop: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
+  },
+  registerText: {
+    color: COLORS.white,
+    fontSize: 15,
+    fontWeight: "900",
   },
   loginLink: {
     alignItems: "center",
-    paddingVertical: 18,
+    marginTop: 18,
   },
   loginText: {
-    color: COLORS.muted,
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  loginBold: {
     color: COLORS.primary,
+    fontSize: 14,
     fontWeight: "900",
   },
 });

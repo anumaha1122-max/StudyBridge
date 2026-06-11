@@ -1,112 +1,88 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, {
+  createContext,
+  useContext,
+  useMemo,
+  useState,
+} from "react";
 
 const AppContext = createContext(null);
 
-const STORAGE_KEY = "STUDYBRIDGE_APP_DATA_V1";
+const makeId = () => Date.now() + Math.floor(Math.random() * 100000);
 
-const now = () => new Date().toISOString();
+const today = () => new Date().toISOString().slice(0, 10);
 
-const initialState = {
+const INITIAL_STATE = {
   students: [
     {
       id: 1,
-      name: "Rahul Student",
-      classId: 1,
-      className: "10th A",
-      rollNumber: "STU101",
-      parentId: 1,
-      attendancePercentage: 94,
-      performancePercentage: 82,
-      behaviorScore: 80,
-      bloodGroup: "O+",
-      emergencyContact: "9876543210",
-    },
-    {
-      id: 2,
-      name: "Priya Sharma",
-      classId: 1,
-      className: "10th A",
-      rollNumber: "STU102",
-      parentId: 2,
-      attendancePercentage: 96,
-      performancePercentage: 88,
-      behaviorScore: 90,
-      bloodGroup: "B+",
-      emergencyContact: "9876543211",
+      name: "Rahul Kumar",
+      email: "rahul@student.com",
+      phone: "9876543210",
+      className: "Class 10",
+      parentName: "Suresh Kumar",
+      status: "ACTIVE",
+      attendancePercentage: 86,
+      performancePercentage: 78,
     },
   ],
 
   teachers: [
     {
       id: 1,
-      name: "Anitha Teacher",
+      name: "Mr. Kumar",
+      email: "kumar@school.com",
+      phone: "9876500001",
       subject: "Mathematics",
-      classId: 1,
-      className: "10th A",
-    },
-    {
-      id: 2,
-      name: "Ravi Sir",
-      subject: "Science",
-      classId: 1,
-      className: "10th A",
+      qualification: "M.Sc, B.Ed",
+      status: "ACTIVE",
     },
   ],
 
   parents: [
     {
       id: 1,
-      name: "Suresh Parent",
+      name: "Suresh Kumar",
+      email: "parent@school.com",
+      phone: "9876543210",
+      childName: "Rahul Kumar",
       childId: 1,
-      childName: "Rahul Student",
-    },
-    {
-      id: 2,
-      name: "Lakshmi Parent",
-      childId: 2,
-      childName: "Priya Sharma",
+      status: "ACTIVE",
     },
   ],
 
   classes: [
     {
       id: 1,
-      name: "10th A",
-      className: "10th",
+      name: "Class 10",
       section: "A",
-      academicYear: "2026-2027",
-      studentsCount: 32,
-    },
-    {
-      id: 2,
-      name: "9th B",
-      className: "9th",
-      section: "B",
-      academicYear: "2026-2027",
-      studentsCount: 28,
+      classTeacher: "Mr. Kumar",
+      room: "Room 101",
+      status: "ACTIVE",
     },
   ],
 
   subjects: [
-    { id: 1, name: "Mathematics", classId: 1 },
-    { id: 2, name: "Science", classId: 1 },
-    { id: 3, name: "English", classId: 1 },
+    {
+      id: 1,
+      name: "Mathematics",
+      className: "Class 10",
+      teacherName: "Mr. Kumar",
+      status: "ACTIVE",
+    },
   ],
+
+  teacherAssignments: [],
 
   homework: [
     {
       id: 1,
-      title: "Math Exercise 4.2",
-      description: "Solve all problems from Exercise 4.2.",
-      classId: 1,
-      className: "10th A",
+      title: "Algebra Practice",
       subject: "Mathematics",
-      teacherId: 1,
-      teacherName: "Anitha Teacher",
-      dueDate: "2026-06-18",
-      instructions: "Submit clear photos of your notebook.",
-      createdAt: now(),
+      description: "Complete exercise 2.1 problems 1 to 10.",
+      dueDate: today(),
+      teacherName: "Mr. Kumar",
+      className: "Class 10",
+      status: "PENDING",
     },
   ],
 
@@ -115,1785 +91,1061 @@ const initialState = {
   exams: [
     {
       id: 1,
-      title: "Math Unit Test",
-      classId: 1,
-      className: "10th A",
+      title: "Unit Test 1",
       subject: "Mathematics",
-      examDate: "2026-06-22",
-      startTime: "10:00 AM",
       syllabus: "Algebra and Geometry",
-      instructions: "Bring geometry box.",
-      teacherId: 1,
-      createdAt: now(),
+      examDate: today(),
+      status: "UPCOMING",
     },
   ],
-
-  marks: [],
 
   attendance: [
     {
       id: 1,
       studentId: 1,
-      studentName: "Rahul Student",
-      classId: 1,
-      subject: "Mathematics",
-      date: "2026-06-10",
+      studentName: "Rahul Kumar",
+      date: today(),
       status: "PRESENT",
-      remark: "",
-      createdAt: now(),
+      remark: "Present",
     },
   ],
 
-  tasks: [
+  marks: [
     {
       id: 1,
       studentId: 1,
-      title: "Revise Algebra",
+      studentName: "Rahul Kumar",
       subject: "Mathematics",
-      priority: "HIGH",
-      dueDate: "2026-06-15",
+      examTitle: "Unit Test 1",
+      marksObtained: 78,
+      totalMarks: 100,
+      remark: "Good",
+      status: "RESULT",
+    },
+  ],
+
+  fees: [
+    {
+      id: 1,
+      title: "Term 1 Fee",
+      className: "Class 10",
+      amount: "25000",
+      dueDate: today(),
       status: "PENDING",
-      createdAt: now(),
+      paymentProof: "",
     },
   ],
 
-  studyPlans: [
-    {
-      id: 1,
-      studentId: 1,
-      subject: "Mathematics",
-      chapterName: "Algebra",
-      targetDate: "2026-06-20",
-      progressPercentage: 70,
-      status: "IN_PROGRESS",
-      createdAt: now(),
-    },
-  ],
+  leaveRequests: [],
 
-  weakTopics: [
-    {
-      id: 1,
-      studentId: 1,
-      subject: "Mathematics",
-      topicName: "Quadratic Equations",
-      reason: "Needs more practice",
-      improvementStatus: "IMPROVING",
-      teacherRemark: "Practice 10 sums daily",
-      createdAt: now(),
-    },
-  ],
+  achievements: [],
+
+  behaviorRecords: [],
+
+  meetings: [],
 
   notes: [
     {
       id: 1,
       title: "Algebra Notes",
       subject: "Mathematics",
-      classId: 1,
-      teacherId: 1,
+      description: "Important formulas and solved examples.",
       type: "PDF",
-      readBy: [],
-      createdAt: now(),
+      status: "ACTIVE",
     },
   ],
+
+  studyMaterials: [
+    {
+      id: 1,
+      title: "Algebra Notes",
+      subject: "Mathematics",
+      description: "Important formulas and solved examples.",
+      type: "PDF",
+      status: "ACTIVE",
+    },
+  ],
+
+  materialReads: [],
 
   doubts: [],
 
-  meetings: [],
+  tasks: [],
 
-  fees: [
-    {
-      id: 1,
-      title: "Term 1 Fee",
-      classId: 1,
-      amount: 12000,
-      dueDate: "2026-06-30",
-      status: "PENDING",
-      paymentProof: "",
-      studentId: 1,
-      parentId: 1,
-      createdAt: now(),
-    },
-  ],
+  dailyTasks: [],
 
   diary: [],
 
-  leaveRequests: [],
-
-  behavior: [
-    {
-      id: 1,
-      studentId: 1,
-      studentName: "Rahul Student",
-      type: "POSITIVE",
-      points: 5,
-      remark: "Helped classmates.",
-      createdAt: now(),
-    },
-  ],
-
-  achievements: [
-    {
-      id: 1,
-      studentId: 1,
-      studentName: "Rahul Student",
-      title: "Homework Champion",
-      description: "Completed all homework this week.",
-      awardedBy: "Anitha Teacher",
-      createdAt: now(),
-    },
-  ],
+  dailyDiary: [],
 
   timetable: [
     {
       id: 1,
-      classId: 1,
       day: "Monday",
-      period: 1,
+      className: "Class 10",
+      period: "1",
       subject: "Mathematics",
-      teacher: "Anitha Teacher",
-      room: "101",
-      time: "09:00 - 09:45",
-    },
-    {
-      id: 2,
-      classId: 1,
-      day: "Monday",
-      period: 2,
-      subject: "Science",
-      teacher: "Ravi Sir",
-      room: "102",
-      time: "09:45 - 10:30",
+      teacher: "Mr. Kumar",
+      time: "09:00 AM - 09:45 AM",
+      room: "Room 101",
+      status: "ACTIVE",
     },
   ],
 
-  events: [
-    {
-      id: 1,
-      title: "Parent Teacher Meeting",
-      description: "Monthly parent-teacher meeting",
-      eventDate: "2026-06-25",
-      targetRole: "ALL",
-      classId: 1,
-      createdAt: now(),
-    },
-  ],
+  events: [],
 
-  announcements: [
-    {
-      id: 1,
-      title: "Holiday Notice",
-      message: "School will be closed on Friday.",
-      targetRole: "ALL",
-      classId: 1,
-      createdAt: now(),
-    },
-  ],
-
-  feedback: [
-    {
-      id: 1,
-      studentId: 1,
-      studentName: "Rahul Student",
-      teacherId: 1,
-      teacherName: "Anitha Teacher",
-      subject: "Mathematics",
-      type: "ACADEMIC",
-      message: "Good progress in Mathematics.",
-      createdAt: now(),
-    },
-  ],
-
-  messages: [
-    {
-      id: 1,
-      senderRole: "PARENT",
-      receiverRole: "TEACHER",
-      senderName: "Suresh Parent",
-      receiverName: "Anitha Teacher",
-      message: "Can we discuss Rahul's math progress?",
-      read: false,
-      createdAt: now(),
-    },
-  ],
+  announcements: [],
 
   notifications: [
     {
       id: 1,
-      userRole: "STUDENT",
-      userId: 1,
-      title: "Welcome",
-      message: "Your StudyBridge account is ready.",
-      read: false,
-      createdAt: now(),
-    },
-    {
-      id: 2,
-      userRole: "PARENT",
-      userId: 1,
-      title: "Fee Due",
-      message: "Term 1 fee is pending.",
-      read: false,
-      createdAt: now(),
+      title: "Welcome to StudyBridge",
+      message: "Your school app is ready.",
+      role: "ALL",
+      status: "UNREAD",
+      date: today(),
+      icon: "notifications-outline",
     },
   ],
 
-  digitalIds: [
-    {
-      id: 1,
-      userRole: "STUDENT",
-      userId: 1,
-      studentId: 1,
-      name: "Rahul Student",
-      className: "10th A",
-      rollNumber: "STU101",
-      bloodGroup: "O+",
-      emergencyContact: "9876543210",
-      cardNumber: "SB-STU-101",
-      qrValue: "STUDYBRIDGE-STUDENT-1",
-      createdAt: now(),
-    },
-  ],
+  feedback: [],
 };
 
 export function AppProvider({ children }) {
-  const [state, setState] = useState(initialState);
-  const [appLoading, setAppLoading] = useState(true);
+  const [students, setStudents] = useState(INITIAL_STATE.students);
+  const [teachers, setTeachers] = useState(INITIAL_STATE.teachers);
+  const [parents, setParents] = useState(INITIAL_STATE.parents);
+  const [classes, setClasses] = useState(INITIAL_STATE.classes);
+  const [subjects, setSubjects] = useState(INITIAL_STATE.subjects);
+  const [teacherAssignments, setTeacherAssignments] = useState(INITIAL_STATE.teacherAssignments);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  const [homework, setHomework] = useState(INITIAL_STATE.homework);
+  const [homeworkSubmissions, setHomeworkSubmissions] = useState(INITIAL_STATE.homeworkSubmissions);
+  const [exams, setExams] = useState(INITIAL_STATE.exams);
+  const [attendance, setAttendance] = useState(INITIAL_STATE.attendance);
+  const [marks, setMarks] = useState(INITIAL_STATE.marks);
 
-  useEffect(() => {
-    if (!appLoading) {
-      saveData(state);
-    }
-  }, [state, appLoading]);
+  const [fees, setFees] = useState(INITIAL_STATE.fees);
+  const [leaveRequests, setLeaveRequests] = useState(INITIAL_STATE.leaveRequests);
+  const [achievements, setAchievements] = useState(INITIAL_STATE.achievements);
+  const [behaviorRecords, setBehaviorRecords] = useState(INITIAL_STATE.behaviorRecords);
+  const [meetings, setMeetings] = useState(INITIAL_STATE.meetings);
 
-  const loadData = async () => {
-    try {
-      const stored = await AsyncStorage.getItem(STORAGE_KEY);
+  const [notes, setNotes] = useState(INITIAL_STATE.notes);
+  const [studyMaterials, setStudyMaterials] = useState(INITIAL_STATE.studyMaterials);
+  const [materialReads, setMaterialReads] = useState(INITIAL_STATE.materialReads);
 
-      if (stored) {
-        setState(JSON.parse(stored));
-      } else {
-        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(initialState));
-      }
-    } catch (error) {
-      console.log("App data load error:", error);
-    } finally {
-      setAppLoading(false);
-    }
-  };
+  const [doubts, setDoubts] = useState(INITIAL_STATE.doubts);
+  const [tasks, setTasks] = useState(INITIAL_STATE.tasks);
+  const [dailyTasks, setDailyTasks] = useState(INITIAL_STATE.dailyTasks);
 
-  const saveData = async (data) => {
-    try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    } catch (error) {
-      console.log("App data save error:", error);
-    }
-  };
+  const [diary, setDiary] = useState(INITIAL_STATE.diary);
+  const [dailyDiary, setDailyDiary] = useState(INITIAL_STATE.dailyDiary);
 
-  const resetAppData = async () => {
-    setState(initialState);
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(initialState));
-  };
+  const [timetable, setTimetable] = useState(INITIAL_STATE.timetable);
+  const [events, setEvents] = useState(INITIAL_STATE.events);
+  const [announcements, setAnnouncements] = useState(INITIAL_STATE.announcements);
+  const [notifications, setNotifications] = useState(INITIAL_STATE.notifications);
+  const [feedback, setFeedback] = useState(INITIAL_STATE.feedback);
 
-  const setAndSave = (updater) => {
-    setState((prev) => {
-      const next = typeof updater === "function" ? updater(prev) : updater;
-      return next;
-    });
-  };
-
-  const getStudent = (studentId = 1) =>
-    state.students.find((student) => student.id === Number(studentId));
-
-  const getTeacher = (teacherId = 1) =>
-    state.teachers.find((teacher) => teacher.id === Number(teacherId));
-
-  const getParentByStudent = (studentId = 1) => {
-    const student = getStudent(studentId);
-    return state.parents.find((parent) => parent.id === student?.parentId);
-  };
-
-  const createNotificationObject = ({ userRole, userId, title, message, type = "GENERAL" }) => ({
-    id: Date.now() + Math.floor(Math.random() * 1000),
-    userRole,
-    userId,
+  const pushNotification = ({
     title,
     message,
-    type,
-    read: false,
-    createdAt: now(),
-  });
-
-  const addNotification = ({ userRole, userId, title, message, type }) => {
-    const notification = createNotificationObject({
-      userRole,
-      userId,
-      title,
-      message,
-      type,
-    });
-
-    setAndSave((prev) => ({
-      ...prev,
-      notifications: [notification, ...prev.notifications],
-    }));
-
-    return notification;
-  };
-
-  const markNotificationRead = (notificationId) => {
-    setAndSave((prev) => ({
-      ...prev,
-      notifications: prev.notifications.map((item) =>
-        item.id === notificationId ? { ...item, read: true } : item
-      ),
-    }));
-  };
-
-  const createHomework = (payload) => {
-    const teacher = getTeacher(payload.teacherId || 1);
-
-    const homework = {
-      id: Date.now(),
-      title: payload.title,
-      description: payload.description || "",
-      classId: payload.classId || teacher?.classId || 1,
-      className: payload.className || teacher?.className || "10th A",
-      subject: payload.subject || teacher?.subject || "Mathematics",
-      teacherId: teacher?.id || 1,
-      teacherName: teacher?.name || "Teacher",
-      dueDate: payload.dueDate,
-      instructions: payload.instructions || "",
-      attachmentName: payload.attachmentName || "",
-      createdAt: now(),
-    };
-
-    const targetStudents = state.students.filter(
-      (student) => student.classId === homework.classId
-    );
-
-    const notifications = [];
-
-    targetStudents.forEach((student) => {
-      notifications.push(
-        createNotificationObject({
-          userRole: "STUDENT",
-          userId: student.id,
-          title: "New Homework",
-          message: homework.title + " assigned in " + homework.subject,
-          type: "HOMEWORK_CREATED",
-        })
-      );
-
-      notifications.push(
-        createNotificationObject({
-          userRole: "PARENT",
-          userId: student.parentId,
-          title: "Homework Assigned",
-          message: homework.title + " assigned to " + student.name,
-          type: "HOMEWORK_CREATED",
-        })
-      );
-    });
-
-    setAndSave((prev) => ({
-      ...prev,
-      homework: [homework, ...prev.homework],
-      notifications: [...notifications, ...prev.notifications],
-    }));
-
-    return homework;
-  };
-
-  const getHomeworkStatus = (homeworkId, studentId = 1) => {
-    const submission = state.homeworkSubmissions.find(
-      (item) => item.homeworkId === homeworkId && item.studentId === studentId
-    );
-
-    return submission?.status || "PENDING";
-  };
-
-  const submitHomework = ({ homeworkId, studentId = 1, submissionText, fileName }) => {
-    const homework = state.homework.find((item) => item.id === homeworkId);
-    const student = getStudent(studentId);
-    const parent = getParentByStudent(studentId);
-
-    const alreadySubmitted = state.homeworkSubmissions.find(
-      (item) => item.homeworkId === homeworkId && item.studentId === studentId
-    );
-
-    if (alreadySubmitted) {
-      return {
-        success: false,
-        message: "Homework already submitted.",
-      };
-    }
-
-    const today = new Date();
-    const dueDate = homework?.dueDate ? new Date(homework.dueDate) : today;
-    const status = today > dueDate ? "LATE" : "SUBMITTED";
-
-    const submission = {
-      id: Date.now(),
-      homeworkId,
-      homeworkTitle: homework?.title || "Homework",
-      studentId,
-      studentName: student?.name || "Student",
-      parentId: parent?.id,
-      teacherId: homework?.teacherId || 1,
-      submissionText,
-      fileName: fileName || "",
-      status,
-      teacherRemark: "",
-      submittedAt: now(),
-      reviewedAt: "",
-    };
-
-    setAndSave((prev) => ({
-      ...prev,
-      homeworkSubmissions: [submission, ...prev.homeworkSubmissions],
-      notifications: [
-        createNotificationObject({
-          userRole: "TEACHER",
-          userId: homework?.teacherId || 1,
-          title: "Homework Submitted",
-          message: submission.studentName + " submitted " + submission.homeworkTitle,
-          type: "HOMEWORK_SUBMITTED",
-        }),
-        ...prev.notifications,
-      ],
-    }));
-
-    return {
-      success: true,
-      data: submission,
-    };
-  };
-
-  const reviewHomework = ({ submissionId, teacherRemark }) => {
-    let reviewedSubmission = null;
-
-    setAndSave((prev) => {
-      const submissions = prev.homeworkSubmissions.map((item) => {
-        if (item.id === submissionId) {
-          reviewedSubmission = {
-            ...item,
-            status: "REVIEWED",
-            teacherRemark,
-            reviewedAt: now(),
-          };
-          return reviewedSubmission;
-        }
-
-        return item;
-      });
-
-      const notifications = reviewedSubmission
-        ? [
-            createNotificationObject({
-              userRole: "STUDENT",
-              userId: reviewedSubmission.studentId,
-              title: "Homework Reviewed",
-              message: reviewedSubmission.homeworkTitle + " was reviewed by teacher.",
-              type: "HOMEWORK_REVIEWED",
-            }),
-            createNotificationObject({
-              userRole: "PARENT",
-              userId: reviewedSubmission.parentId,
-              title: "Homework Reviewed",
-              message: reviewedSubmission.studentName + "'s homework was reviewed.",
-              type: "HOMEWORK_REVIEWED",
-            }),
-          ]
-        : [];
-
-      return {
-        ...prev,
-        homeworkSubmissions: submissions,
-        notifications: [...notifications, ...prev.notifications],
-      };
-    });
-
-    return reviewedSubmission;
-  };
-
-  const createExam = (payload) => {
-    const teacher = getTeacher(payload.teacherId || 1);
-
-    const exam = {
-      id: Date.now(),
-      title: payload.title,
-      classId: payload.classId || teacher?.classId || 1,
-      className: payload.className || teacher?.className || "10th A",
-      subject: payload.subject || teacher?.subject || "Mathematics",
-      examDate: payload.examDate,
-      startTime: payload.startTime || "",
-      syllabus: payload.syllabus || "",
-      instructions: payload.instructions || "",
-      teacherId: teacher?.id || 1,
-      createdAt: now(),
-    };
-
-    const targetStudents = state.students.filter(
-      (student) => student.classId === exam.classId
-    );
-
-    const notifications = [];
-
-    targetStudents.forEach((student) => {
-      notifications.push(
-        createNotificationObject({
-          userRole: "STUDENT",
-          userId: student.id,
-          title: "Exam Scheduled",
-          message: exam.title + " scheduled on " + exam.examDate,
-          type: "EXAM_CREATED",
-        })
-      );
-
-      notifications.push(
-        createNotificationObject({
-          userRole: "PARENT",
-          userId: student.parentId,
-          title: "Exam Scheduled",
-          message: exam.title + " scheduled for " + student.name,
-          type: "EXAM_CREATED",
-        })
-      );
-    });
-
-    setAndSave((prev) => ({
-      ...prev,
-      exams: [exam, ...prev.exams],
-      notifications: [...notifications, ...prev.notifications],
-    }));
-
-    return exam;
-  };
-
-  const calculateGrade = (percentage) => {
-    if (percentage >= 90) return "A+";
-    if (percentage >= 80) return "A";
-    if (percentage >= 70) return "B";
-    if (percentage >= 60) return "C";
-    if (percentage >= 50) return "D";
-    return "Needs Improvement";
-  };
-
-  const uploadMarks = ({
-    examId,
-    studentId = 1,
-    subject,
-    marksObtained,
-    totalMarks,
-    remark,
+    role = "ALL",
+    icon = "notifications-outline",
   }) => {
-    const student = getStudent(studentId);
-    const parent = getParentByStudent(studentId);
-    const percentage = Math.round((Number(marksObtained) / Number(totalMarks)) * 100);
-    const grade = calculateGrade(percentage);
-
-    const mark = {
-      id: Date.now(),
-      examId,
-      studentId,
-      studentName: student?.name || "Student",
-      parentId: parent?.id,
-      subject,
-      marksObtained: Number(marksObtained),
-      totalMarks: Number(totalMarks),
-      percentage,
-      grade,
-      remark: remark || "",
-      createdAt: now(),
-    };
-
-    setAndSave((prev) => ({
+    setNotifications((prev) => [
+      {
+        id: makeId(),
+        title,
+        message,
+        role,
+        icon,
+        status: "UNREAD",
+        date: today(),
+      },
       ...prev,
-      marks: [mark, ...prev.marks],
-      students: prev.students.map((item) =>
-        item.id === studentId
-          ? { ...item, performancePercentage: percentage }
-          : item
-      ),
-      notifications: [
-        createNotificationObject({
-          userRole: "STUDENT",
-          userId: studentId,
-          title: "Marks Uploaded",
-          message: subject + " marks uploaded. Grade: " + grade,
-          type: "MARKS_UPLOADED",
-        }),
-        createNotificationObject({
-          userRole: "PARENT",
-          userId: parent?.id,
-          title: "Marks Uploaded",
-          message: student?.name + "'s " + subject + " marks are available.",
-          type: "MARKS_UPLOADED",
-        }),
-        ...prev.notifications,
-      ],
-    }));
-
-    return mark;
+    ]);
   };
-
-  const markAttendance = ({ studentId = 1, subject, date, status, remark }) => {
-    const student = getStudent(studentId);
-    const parent = getParentByStudent(studentId);
-
-    const record = {
-      id: Date.now(),
-      studentId,
-      studentName: student?.name || "Student",
-      parentId: parent?.id,
-      classId: student?.classId || 1,
-      subject,
-      date,
-      status,
-      remark: remark || "",
-      createdAt: now(),
-    };
-
-    setAndSave((prev) => {
-      const studentRecords = [
-        record,
-        ...prev.attendance.filter((item) => item.studentId === studentId),
-      ];
-
-      const presentCount = studentRecords.filter(
-        (item) => item.status === "PRESENT" || item.status === "LATE" || item.status === "LEAVE"
-      ).length;
-
-      const percentage = Math.round((presentCount / studentRecords.length) * 100);
-
-      return {
-        ...prev,
-        attendance: [record, ...prev.attendance],
-        students: prev.students.map((item) =>
-          item.id === studentId
-            ? { ...item, attendancePercentage: percentage }
-            : item
-        ),
-        notifications: [
-          createNotificationObject({
-            userRole: "PARENT",
-            userId: parent?.id,
-            title: status === "ABSENT" ? "Absent Alert" : "Attendance Updated",
-            message: student?.name + " marked " + status,
-            type: status === "ABSENT" ? "STUDENT_ABSENT" : "ATTENDANCE_MARKED",
-          }),
-          createNotificationObject({
-            userRole: "STUDENT",
-            userId: studentId,
-            title: "Attendance Updated",
-            message: "You were marked " + status,
-            type: "ATTENDANCE_MARKED",
-          }),
-          ...prev.notifications,
-        ],
-      };
-    });
-
-    return record;
-  };
-
-  const addTask = ({ studentId = 1, title, subject, priority, dueDate }) => {
-    const task = {
-      id: Date.now(),
-      studentId,
-      title,
-      subject,
-      priority: priority || "MEDIUM",
-      dueDate,
-      status: "PENDING",
-      createdAt: now(),
-    };
-
-    setAndSave((prev) => ({
-      ...prev,
-      tasks: [task, ...prev.tasks],
-    }));
-
-    return task;
-  };
-
-  const updateTaskStatus = (taskId, status) => {
-    setAndSave((prev) => ({
-      ...prev,
-      tasks: prev.tasks.map((task) =>
-        task.id === taskId ? { ...task, status } : task
-      ),
-    }));
-  };
-
-  const addStudyPlan = ({ studentId = 1, subject, chapterName, targetDate }) => {
-    const plan = {
-      id: Date.now(),
-      studentId,
-      subject,
-      chapterName,
-      targetDate,
-      progressPercentage: 0,
-      status: "PENDING",
-      createdAt: now(),
-    };
-
-    setAndSave((prev) => ({
-      ...prev,
-      studyPlans: [plan, ...prev.studyPlans],
-    }));
-
-    return plan;
-  };
-
-  const updateStudyPlanProgress = (planId, progressPercentage) => {
-    setAndSave((prev) => ({
-      ...prev,
-      studyPlans: prev.studyPlans.map((plan) =>
-        plan.id === planId
-          ? {
-              ...plan,
-              progressPercentage,
-              status: progressPercentage >= 100 ? "COMPLETED" : "IN_PROGRESS",
-            }
-          : plan
-      ),
-    }));
-  };
-
-  const addWeakTopic = ({ studentId = 1, subject, topicName, reason, teacherRemark }) => {
-    const weakTopic = {
-      id: Date.now(),
-      studentId,
-      subject,
-      topicName,
-      reason,
-      improvementStatus: "NEEDS_PRACTICE",
-      teacherRemark: teacherRemark || "",
-      createdAt: now(),
-    };
-
-    setAndSave((prev) => ({
-      ...prev,
-      weakTopics: [weakTopic, ...prev.weakTopics],
-    }));
-
-    return weakTopic;
-  };
-
-  const uploadNotes = ({ title, subject, classId = 1, teacherId = 1, type }) => {
-    const note = {
-      id: Date.now(),
-      title,
-      subject,
-      classId,
-      teacherId,
-      type: type || "PDF",
-      readBy: [],
-      createdAt: now(),
-    };
-
-    const targetStudents = state.students.filter((student) => student.classId === classId);
-
-    const notifications = [];
-
-    targetStudents.forEach((student) => {
-      notifications.push(
-        createNotificationObject({
-          userRole: "STUDENT",
-          userId: student.id,
-          title: "New Study Material",
-          message: title + " uploaded for " + subject,
-          type: "NOTES_UPLOADED",
-        })
-      );
-    });
-
-    setAndSave((prev) => ({
-      ...prev,
-      notes: [note, ...prev.notes],
-      notifications: [...notifications, ...prev.notifications],
-    }));
-
-    return note;
-  };
-
-  const markNotesAsRead = ({ noteId, studentId = 1 }) => {
-    setAndSave((prev) => ({
-      ...prev,
-      notes: prev.notes.map((note) =>
-        note.id === noteId
-          ? { ...note, readBy: Array.from(new Set([...(note.readBy || []), studentId])) }
-          : note
-      ),
-    }));
-  };
-
-  const askDoubt = ({ studentId = 1, subject, doubtText, attachmentName }) => {
-    const student = getStudent(studentId);
-
-    const doubt = {
-      id: Date.now(),
-      studentId,
-      studentName: student?.name || "Student",
-      subject,
-      doubtText,
-      attachmentName: attachmentName || "",
-      answerText: "",
-      status: "PENDING",
-      createdAt: now(),
-      answeredAt: "",
-    };
-
-    setAndSave((prev) => ({
-      ...prev,
-      doubts: [doubt, ...prev.doubts],
-      notifications: [
-        createNotificationObject({
-          userRole: "TEACHER",
-          userId: 1,
-          title: "New Doubt",
-          message: student?.name + " asked a doubt in " + subject,
-          type: "DOUBT_ASKED",
-        }),
-        ...prev.notifications,
-      ],
-    }));
-
-    return doubt;
-  };
-
-  const answerDoubt = ({ doubtId, answerText }) => {
-    let doubt = null;
-
-    setAndSave((prev) => {
-      const doubts = prev.doubts.map((item) => {
-        if (item.id === doubtId) {
-          doubt = {
-            ...item,
-            answerText,
-            status: "ANSWERED",
-            answeredAt: now(),
-          };
-          return doubt;
-        }
-
-        return item;
-      });
-
-      return {
-        ...prev,
-        doubts,
-        notifications: doubt
-          ? [
-              createNotificationObject({
-                userRole: "STUDENT",
-                userId: doubt.studentId,
-                title: "Doubt Answered",
-                message: "Teacher answered your doubt.",
-                type: "DOUBT_ANSWERED",
-              }),
-              ...prev.notifications,
-            ]
-          : prev.notifications,
-      };
-    });
-  };
-
-  const markDoubtSolved = (doubtId) => {
-    setAndSave((prev) => ({
-      ...prev,
-      doubts: prev.doubts.map((item) =>
-        item.id === doubtId ? { ...item, status: "SOLVED" } : item
-      ),
-    }));
-  };
-
-  const sendFeedback = ({ studentId = 1, teacherId = 1, subject, type, message }) => {
-    const student = getStudent(studentId);
-    const parent = getParentByStudent(studentId);
-    const teacher = getTeacher(teacherId);
-
-    const feedback = {
-      id: Date.now(),
-      studentId,
-      studentName: student?.name,
-      parentId: parent?.id,
-      teacherId,
-      teacherName: teacher?.name,
-      subject,
-      type,
-      message,
-      createdAt: now(),
-    };
-
-    setAndSave((prev) => ({
-      ...prev,
-      feedback: [feedback, ...prev.feedback],
-      notifications: [
-        createNotificationObject({
-          userRole: "STUDENT",
-          userId: studentId,
-          title: "Teacher Feedback",
-          message,
-          type: "FEEDBACK_SENT",
-        }),
-        createNotificationObject({
-          userRole: "PARENT",
-          userId: parent?.id,
-          title: "Teacher Feedback",
-          message: "Feedback received for " + student?.name,
-          type: "FEEDBACK_SENT",
-        }),
-        ...prev.notifications,
-      ],
-    }));
-
-    return feedback;
-  };
-
-  const requestMeeting = ({ parentId = 1, teacherId = 1, studentId = 1, reason, preferredDate, preferredTime }) => {
-    const parent = state.parents.find((item) => item.id === parentId);
-    const teacher = getTeacher(teacherId);
-    const student = getStudent(studentId);
-
-    const meeting = {
-      id: Date.now(),
-      parentId,
-      parentName: parent?.name || "Parent",
-      teacherId,
-      teacherName: teacher?.name || "Teacher",
-      studentId,
-      studentName: student?.name || "Student",
-      reason,
-      preferredDate,
-      preferredTime,
-      status: "REQUESTED",
-      teacherNote: "",
-      meetingLink: "",
-      createdAt: now(),
-    };
-
-    setAndSave((prev) => ({
-      ...prev,
-      meetings: [meeting, ...prev.meetings],
-      notifications: [
-        createNotificationObject({
-          userRole: "TEACHER",
-          userId: teacherId,
-          title: "Meeting Requested",
-          message: meeting.parentName + " requested a meeting.",
-          type: "MEETING_REQUESTED",
-        }),
-        ...prev.notifications,
-      ],
-    }));
-
-    return meeting;
-  };
-
-  const updateMeetingStatus = ({ meetingId, status, teacherNote, meetingLink }) => {
-    let meeting = null;
-
-    setAndSave((prev) => {
-      const meetings = prev.meetings.map((item) => {
-        if (item.id === meetingId) {
-          meeting = {
-            ...item,
-            status,
-            teacherNote: teacherNote || item.teacherNote,
-            meetingLink: meetingLink || item.meetingLink,
-          };
-          return meeting;
-        }
-
-        return item;
-      });
-
-      return {
-        ...prev,
-        meetings,
-        notifications: meeting
-          ? [
-              createNotificationObject({
-                userRole: "PARENT",
-                userId: meeting.parentId,
-                title: "Meeting " + status,
-                message: "Teacher updated your meeting request.",
-                type: "MEETING_STATUS_UPDATED",
-              }),
-              ...prev.notifications,
-            ]
-          : prev.notifications,
-      };
-    });
-  };
-
-  const createTimetablePeriod = ({ classId = 1, day, period, subject, teacher, room, time }) => {
-    const timetablePeriod = {
-      id: Date.now(),
-      classId,
-      day,
-      period,
-      subject,
-      teacher,
-      room,
-      time,
-    };
-
-    setAndSave((prev) => ({
-      ...prev,
-      timetable: [timetablePeriod, ...prev.timetable],
-    }));
-
-    return timetablePeriod;
-  };
-
-  const createDailyDiary = ({ classId = 1, date, classSummary, homeworkSummary, reminders }) => {
-    const diary = {
-      id: Date.now(),
-      classId,
-      className: "10th A",
-      date,
-      classSummary,
-      homeworkSummary,
-      reminders,
-      acknowledgements: [],
-      createdAt: now(),
-    };
-
-    const targetStudents = state.students.filter((student) => student.classId === classId);
-
-    const notifications = [];
-
-    targetStudents.forEach((student) => {
-      notifications.push(
-        createNotificationObject({
-          userRole: "PARENT",
-          userId: student.parentId,
-          title: "Daily Diary Posted",
-          message: "Teacher posted today's diary.",
-          type: "DIARY_CREATED",
-        })
-      );
-    });
-
-    setAndSave((prev) => ({
-      ...prev,
-      diary: [diary, ...prev.diary],
-      notifications: [...notifications, ...prev.notifications],
-    }));
-
-    return diary;
-  };
-
-  const acknowledgeDiary = ({ diaryId, parentId = 1 }) => {
-    setAndSave((prev) => ({
-      ...prev,
-      diary: prev.diary.map((item) =>
-        item.id === diaryId
-          ? {
-              ...item,
-              acknowledgements: Array.from(new Set([...(item.acknowledgements || []), parentId])),
-            }
-          : item
-      ),
-      notifications: [
-        createNotificationObject({
-          userRole: "TEACHER",
-          userId: 1,
-          title: "Diary Acknowledged",
-          message: "Parent acknowledged daily diary.",
-          type: "DIARY_ACKNOWLEDGED",
-        }),
-        ...prev.notifications,
-      ],
-    }));
-  };
-
-  const submitLeaveRequest = ({ studentId = 1, parentId, reason, fromDate, toDate, message }) => {
-    const student = getStudent(studentId);
-    const parent = state.parents.find((item) => item.id === (parentId || student?.parentId));
-
-    const leave = {
-      id: Date.now(),
-      studentId,
-      studentName: student?.name,
-      parentId: parent?.id,
-      parentName: parent?.name,
-      reason,
-      fromDate,
-      toDate,
-      message: message || "",
-      status: "REQUESTED",
-      teacherRemark: "",
-      createdAt: now(),
-    };
-
-    setAndSave((prev) => ({
-      ...prev,
-      leaveRequests: [leave, ...prev.leaveRequests],
-      notifications: [
-        createNotificationObject({
-          userRole: "TEACHER",
-          userId: 1,
-          title: "Leave Requested",
-          message: student?.name + " requested leave.",
-          type: "LEAVE_REQUESTED",
-        }),
-        ...prev.notifications,
-      ],
-    }));
-
-    return leave;
-  };
-
-  const updateLeaveStatus = ({ leaveId, status, teacherRemark }) => {
-    let leave = null;
-
-    setAndSave((prev) => {
-      const leaveRequests = prev.leaveRequests.map((item) => {
-        if (item.id === leaveId) {
-          leave = {
-            ...item,
-            status,
-            teacherRemark: teacherRemark || "",
-          };
-          return leave;
-        }
-
-        return item;
-      });
-
-      let newAttendance = prev.attendance;
-
-      if (leave?.status === "APPROVED") {
-        newAttendance = [
-          {
-            id: Date.now() + 10,
-            studentId: leave.studentId,
-            studentName: leave.studentName,
-            parentId: leave.parentId,
-            classId: 1,
-            subject: "Leave",
-            date: leave.fromDate,
-            status: "LEAVE",
-            remark: leave.reason,
-            createdAt: now(),
-          },
-          ...prev.attendance,
-        ];
-      }
-
-      return {
-        ...prev,
-        leaveRequests,
-        attendance: newAttendance,
-        notifications: leave
-          ? [
-              createNotificationObject({
-                userRole: "PARENT",
-                userId: leave.parentId,
-                title: "Leave " + status,
-                message: "Teacher updated leave request.",
-                type: "LEAVE_STATUS_UPDATED",
-              }),
-              createNotificationObject({
-                userRole: "STUDENT",
-                userId: leave.studentId,
-                title: "Leave " + status,
-                message: "Your leave request was updated.",
-                type: "LEAVE_STATUS_UPDATED",
-              }),
-              ...prev.notifications,
-            ]
-          : prev.notifications,
-      };
-    });
-  };
-
-  const addBehaviorRecord = ({ studentId = 1, type, points, remark }) => {
-    const student = getStudent(studentId);
-    const parent = getParentByStudent(studentId);
-
-    const behaviorRecord = {
-      id: Date.now(),
-      studentId,
-      studentName: student?.name,
-      type,
-      points: Number(points),
-      remark,
-      createdAt: now(),
-    };
-
-    setAndSave((prev) => {
-      const oldScore = student?.behaviorScore || 80;
-      const nextScore = Math.max(0, Math.min(100, oldScore + Number(points)));
-
-      return {
-        ...prev,
-        behavior: [behaviorRecord, ...prev.behavior],
-        students: prev.students.map((item) =>
-          item.id === studentId ? { ...item, behaviorScore: nextScore } : item
-        ),
-        notifications: [
-          createNotificationObject({
-            userRole: "PARENT",
-            userId: parent?.id,
-            title: "Behavior Update",
-            message: student?.name + " received behavior update.",
-            type: "BEHAVIOR_ADDED",
-          }),
-          ...prev.notifications,
-        ],
-      };
-    });
-
-    return behaviorRecord;
-  };
-
-  const awardAchievement = ({ studentId = 1, title, description, awardedBy }) => {
-    const student = getStudent(studentId);
-    const parent = getParentByStudent(studentId);
-
-    const achievement = {
-      id: Date.now(),
-      studentId,
-      studentName: student?.name,
-      title,
-      description,
-      awardedBy: awardedBy || "Teacher",
-      createdAt: now(),
-    };
-
-    setAndSave((prev) => ({
-      ...prev,
-      achievements: [achievement, ...prev.achievements],
-      notifications: [
-        createNotificationObject({
-          userRole: "STUDENT",
-          userId: studentId,
-          title: "Achievement Awarded",
-          message: "You received " + title,
-          type: "ACHIEVEMENT_AWARDED",
-        }),
-        createNotificationObject({
-          userRole: "PARENT",
-          userId: parent?.id,
-          title: "Achievement Awarded",
-          message: student?.name + " received " + title,
-          type: "ACHIEVEMENT_AWARDED",
-        }),
-        ...prev.notifications,
-      ],
-    }));
-
-    return achievement;
-  };
-
-  const createFee = ({ title, amount, dueDate, studentId = 1 }) => {
-    const student = getStudent(studentId);
-
-    const fee = {
-      id: Date.now(),
-      title,
-      classId: student?.classId || 1,
-      amount: Number(amount),
-      dueDate,
-      status: "PENDING",
-      paymentProof: "",
-      studentId,
-      parentId: student?.parentId,
-      createdAt: now(),
-    };
-
-    setAndSave((prev) => ({
-      ...prev,
-      fees: [fee, ...prev.fees],
-      notifications: [
-        createNotificationObject({
-          userRole: "PARENT",
-          userId: student?.parentId,
-          title: "Fee Due",
-          message: title + " fee added. Amount: ₹" + amount,
-          type: "FEE_CREATED",
-        }),
-        ...prev.notifications,
-      ],
-    }));
-
-    return fee;
-  };
-
-  const uploadPaymentProof = ({ feeId, paymentProof }) => {
-    let fee = null;
-
-    setAndSave((prev) => {
-      const fees = prev.fees.map((item) => {
-        if (item.id === feeId) {
-          fee = {
-            ...item,
-            status: "SUBMITTED",
-            paymentProof,
-          };
-          return fee;
-        }
-
-        return item;
-      });
-
-      return {
-        ...prev,
-        fees,
-        notifications: [
-          createNotificationObject({
-            userRole: "ADMIN",
-            userId: 1,
-            title: "Payment Proof Submitted",
-            message: "Parent submitted payment proof.",
-            type: "PAYMENT_PROOF_SUBMITTED",
-          }),
-          ...prev.notifications,
-        ],
-      };
-    });
-  };
-
-  const verifyFeePayment = ({ feeId, status }) => {
-    let fee = null;
-
-    setAndSave((prev) => {
-      const fees = prev.fees.map((item) => {
-        if (item.id === feeId) {
-          fee = {
-            ...item,
-            status,
-          };
-          return fee;
-        }
-
-        return item;
-      });
-
-      return {
-        ...prev,
-        fees,
-        notifications: fee
-          ? [
-              createNotificationObject({
-                userRole: "PARENT",
-                userId: fee.parentId,
-                title: "Fee " + status,
-                message: "Admin updated payment status.",
-                type: "PAYMENT_VERIFIED",
-              }),
-              ...prev.notifications,
-            ]
-          : prev.notifications,
-      };
-    });
-  };
-
-  const createDigitalId = ({ userRole, userId, studentId }) => {
-    const student = getStudent(studentId);
-
-    const card = {
-      id: Date.now(),
-      userRole,
-      userId,
-      studentId,
-      name: student?.name || "User",
-      className: student?.className || "",
-      rollNumber: student?.rollNumber || "",
-      bloodGroup: student?.bloodGroup || "",
-      emergencyContact: student?.emergencyContact || "",
-      cardNumber: "SB-" + userRole + "-" + Date.now(),
-      qrValue: "STUDYBRIDGE-" + userRole + "-" + userId,
-      createdAt: now(),
-    };
-
-    setAndSave((prev) => ({
-      ...prev,
-      digitalIds: [card, ...prev.digitalIds],
-      notifications: [
-        createNotificationObject({
-          userRole,
-          userId,
-          title: "Digital ID Created",
-          message: "Your digital ID card is ready.",
-          type: "DIGITAL_ID_CREATED",
-        }),
-        ...prev.notifications,
-      ],
-    }));
-
-    return card;
-  };
-
-  const createEvent = ({ title, description, eventDate, targetRole, classId }) => {
-    const event = {
-      id: Date.now(),
-      title,
-      description,
-      eventDate,
-      targetRole: targetRole || "ALL",
-      classId: classId || 1,
-      createdAt: now(),
-    };
-
-    setAndSave((prev) => ({
-      ...prev,
-      events: [event, ...prev.events],
-      notifications: [
-        createNotificationObject({
-          userRole: "STUDENT",
-          userId: 1,
-          title: "New Event",
-          message: title,
-          type: "EVENT_CREATED",
-        }),
-        createNotificationObject({
-          userRole: "PARENT",
-          userId: 1,
-          title: "New Event",
-          message: title,
-          type: "EVENT_CREATED",
-        }),
-        createNotificationObject({
-          userRole: "TEACHER",
-          userId: 1,
-          title: "New Event",
-          message: title,
-          type: "EVENT_CREATED",
-        }),
-        ...prev.notifications,
-      ],
-    }));
-
-    return event;
-  };
-
-  const sendAnnouncement = ({ title, message, targetRole, classId }) => {
-    const announcement = {
-      id: Date.now(),
-      title,
-      message,
-      targetRole: targetRole || "ALL",
-      classId: classId || 1,
-      createdAt: now(),
-    };
-
-    setAndSave((prev) => ({
-      ...prev,
-      announcements: [announcement, ...prev.announcements],
-      notifications: [
-        createNotificationObject({
-          userRole: targetRole === "ALL" ? "STUDENT" : targetRole,
-          userId: 1,
-          title,
-          message,
-          type: "ANNOUNCEMENT_SENT",
-        }),
-        ...prev.notifications,
-      ],
-    }));
-
-    return announcement;
-  };
-
-  const sendMessage = ({ senderRole, receiverRole, senderName, receiverName, message }) => {
-    const newMessage = {
-      id: Date.now(),
-      senderRole,
-      receiverRole,
-      senderName: senderName || senderRole,
-      receiverName: receiverName || receiverRole,
-      message,
-      read: false,
-      createdAt: now(),
-    };
-
-    setAndSave((prev) => ({
-      ...prev,
-      messages: [...prev.messages, newMessage],
-      notifications: [
-        createNotificationObject({
-          userRole: receiverRole,
-          userId: 1,
-          title: "New Message",
-          message,
-          type: "MESSAGE_SENT",
-        }),
-        ...prev.notifications,
-      ],
-    }));
-
-    return newMessage;
-  };
-
-  const getStudentDashboard = (studentId = 1) => {
-    const student = getStudent(studentId);
-
-    return {
-      student,
-      pendingHomeworkCount: state.homework.filter(
-        (homework) => getHomeworkStatus(homework.id, studentId) === "PENDING"
-      ).length,
-      upcomingExamCount: state.exams.filter(
-        (exam) => exam.classId === student?.classId
-      ).length,
-      attendancePercentage: student?.attendancePercentage || 0,
-      performancePercentage: student?.performancePercentage || 0,
-      feeDueCount: state.fees.filter(
-        (fee) => fee.studentId === studentId && fee.status !== "VERIFIED"
-      ).length,
-      behaviorScore: student?.behaviorScore || 0,
-      achievementCount: state.achievements.filter(
-        (item) => item.studentId === studentId
-      ).length,
-    };
-  };
-
-  const getParentDashboard = (parentId = 1) => {
-    const parent = state.parents.find((item) => item.id === parentId);
-    const student = getStudent(parent?.childId || 1);
-    const studentDashboard = getStudentDashboard(student?.id || 1);
-
-    return {
-      parent,
-      child: student,
-      ...studentDashboard,
-      diaryPendingCount: state.diary.filter(
-        (item) => !(item.acknowledgements || []).includes(parentId)
-      ).length,
-      meetingsCount: state.meetings.filter((item) => item.parentId === parentId).length,
-    };
-  };
-
-  const getTeacherDashboard = (teacherId = 1) => {
-    return {
-      teacher: getTeacher(teacherId),
-      assignedClassesCount: 1,
-      totalStudents: state.students.length,
-      pendingHomeworkReviews: state.homeworkSubmissions.filter(
-        (item) => item.status === "SUBMITTED" || item.status === "LATE"
-      ).length,
-      pendingLeaveRequests: state.leaveRequests.filter(
-        (item) => item.status === "REQUESTED"
-      ).length,
-      pendingMeetingRequests: state.meetings.filter(
-        (item) => item.status === "REQUESTED"
-      ).length,
-      pendingDoubts: state.doubts.filter((item) => item.status === "PENDING").length,
-    };
-  };
-
-  const getAdminDashboard = () => {
-    return {
-      totalStudents: state.students.length,
-      totalTeachers: state.teachers.length,
-      totalParents: state.parents.length,
-      totalClasses: state.classes.length,
-      totalFees: state.fees.length,
-      pendingFeeVerifications: state.fees.filter((fee) => fee.status === "SUBMITTED").length,
-      pendingLeaveRequests: state.leaveRequests.filter(
-        (item) => item.status === "REQUESTED"
-      ).length,
-    };
-  };
-
 
   const addStudent = (payload) => {
-    const student = {
-      id: Date.now(),
-      name: payload.name,
-      classId: payload.classId || 1,
-      className: payload.className || "10th A",
-      rollNumber: payload.rollNumber,
-      parentId: payload.parentId || 1,
-      attendancePercentage: 0,
-      performancePercentage: 0,
-      behaviorScore: 80,
-      bloodGroup: payload.bloodGroup || "",
-      emergencyContact: payload.emergencyContact || "",
-      createdAt: now(),
+    const item = {
+      id: makeId(),
+      status: "ACTIVE",
+      ...payload,
     };
 
-    setAndSave((prev) => ({
-      ...prev,
-      students: [student, ...prev.students],
-      notifications: [
-        createNotificationObject({
-          userRole: "ADMIN",
-          userId: 1,
-          title: "Student Added",
-          message: student.name + " added successfully.",
-          type: "STUDENT_CREATED",
-        }),
-        ...prev.notifications,
-      ],
-    }));
+    setStudents((prev) => [item, ...prev]);
 
-    return student;
+    pushNotification({
+      title: "New Student Added",
+      message: item.name + " profile created successfully.",
+      role: "ADMIN",
+      icon: "person-add-outline",
+    });
   };
 
   const addTeacher = (payload) => {
-    const teacher = {
-      id: Date.now(),
-      name: payload.name,
-      subject: payload.subject,
-      classId: payload.classId || 1,
-      className: payload.className || "10th A",
-      createdAt: now(),
+    const item = {
+      id: makeId(),
+      status: "ACTIVE",
+      ...payload,
     };
 
-    setAndSave((prev) => ({
-      ...prev,
-      teachers: [teacher, ...prev.teachers],
-      notifications: [
-        createNotificationObject({
-          userRole: "ADMIN",
-          userId: 1,
-          title: "Teacher Added",
-          message: teacher.name + " added successfully.",
-          type: "TEACHER_CREATED",
-        }),
-        ...prev.notifications,
-      ],
-    }));
+    setTeachers((prev) => [item, ...prev]);
 
-    return teacher;
+    pushNotification({
+      title: "New Teacher Added",
+      message: item.name + " profile created successfully.",
+      role: "ADMIN",
+      icon: "school-outline",
+    });
   };
 
   const addParent = (payload) => {
-    const student = state.students.find((s) => s.id === Number(payload.childId));
-
-    const parent = {
-      id: Date.now(),
-      name: payload.name,
-      childId: Number(payload.childId),
-      childName: student?.name || "Student",
-      phone: payload.phone || "",
-      createdAt: now(),
+    const item = {
+      id: makeId(),
+      status: "ACTIVE",
+      ...payload,
     };
 
-    setAndSave((prev) => ({
-      ...prev,
-      parents: [parent, ...prev.parents],
-      students: prev.students.map((s) =>
-        s.id === Number(payload.childId) ? { ...s, parentId: parent.id } : s
-      ),
-      notifications: [
-        createNotificationObject({
-          userRole: "ADMIN",
-          userId: 1,
-          title: "Parent Added",
-          message: parent.name + " linked with " + parent.childName,
-          type: "PARENT_CREATED",
-        }),
-        ...prev.notifications,
-      ],
-    }));
+    setParents((prev) => [item, ...prev]);
 
-    return parent;
+    pushNotification({
+      title: "New Parent Added",
+      message: item.name + " parent profile created.",
+      role: "ADMIN",
+      icon: "people-outline",
+    });
   };
 
   const addClass = (payload) => {
-    const schoolClass = {
-      id: Date.now(),
-      name: payload.className + " " + payload.section,
-      className: payload.className,
-      section: payload.section,
-      academicYear: payload.academicYear || "2026-2027",
-      studentsCount: 0,
-      createdAt: now(),
+    const item = {
+      id: makeId(),
+      status: "ACTIVE",
+      ...payload,
     };
 
-    setAndSave((prev) => ({
-      ...prev,
-      classes: [schoolClass, ...prev.classes],
-      notifications: [
-        createNotificationObject({
-          userRole: "ADMIN",
-          userId: 1,
-          title: "Class Created",
-          message: schoolClass.name + " created.",
-          type: "CLASS_CREATED",
-        }),
-        ...prev.notifications,
-      ],
-    }));
-
-    return schoolClass;
+    setClasses((prev) => [item, ...prev]);
   };
 
   const addSubject = (payload) => {
-    const subject = {
-      id: Date.now(),
-      name: payload.name,
-      classId: payload.classId || 1,
-      createdAt: now(),
+    const item = {
+      id: makeId(),
+      status: "ACTIVE",
+      ...payload,
     };
 
-    setAndSave((prev) => ({
-      ...prev,
-      subjects: [subject, ...prev.subjects],
-      notifications: [
-        createNotificationObject({
-          userRole: "ADMIN",
-          userId: 1,
-          title: "Subject Added",
-          message: subject.name + " added.",
-          type: "SUBJECT_CREATED",
-        }),
-        ...prev.notifications,
-      ],
-    }));
-
-    return subject;
+    setSubjects((prev) => [item, ...prev]);
   };
 
   const assignTeacher = (payload) => {
-    const teacherId = Number(payload.teacherId);
-    const classId = Number(payload.classId);
-    const classObj = state.classes.find((c) => c.id === classId);
+    const item = {
+      id: makeId(),
+      status: "ASSIGNED",
+      ...payload,
+    };
 
-    setAndSave((prev) => ({
-      ...prev,
-      teachers: prev.teachers.map((teacher) =>
-        teacher.id === teacherId
-          ? {
-              ...teacher,
-              classId,
-              className: classObj?.name || teacher.className,
-              subject: payload.subject || teacher.subject,
-            }
-          : teacher
-      ),
-      notifications: [
-        createNotificationObject({
-          userRole: "TEACHER",
-          userId: teacherId,
-          title: "Class Assigned",
-          message: "You are assigned to " + (classObj?.name || "class"),
-          type: "TEACHER_ASSIGNED",
-        }),
-        ...prev.notifications,
-      ],
-    }));
+    setTeacherAssignments((prev) => [item, ...prev]);
+
+    pushNotification({
+      title: "Teacher Assigned",
+      message: item.teacherName + " assigned to " + item.className + " " + item.section,
+      role: "TEACHER",
+      icon: "git-branch-outline",
+    });
   };
 
+  const createHomework = (payload) => {
+    const item = {
+      id: makeId(),
+      status: "PENDING",
+      dueDate: payload.dueDate || today(),
+      ...payload,
+    };
+
+    setHomework((prev) => [item, ...prev]);
+
+    pushNotification({
+      title: "New Homework",
+      message: item.title + " assigned for " + item.subject,
+      role: "STUDENT",
+      icon: "book-outline",
+    });
+
+    pushNotification({
+      title: "Child Homework",
+      message: item.title + " assigned for " + item.subject,
+      role: "PARENT",
+      icon: "book-outline",
+    });
+  };
+
+  const submitHomework = (payload) => {
+    const item = {
+      id: makeId(),
+      submittedAt: today(),
+      status: "SUBMITTED",
+      ...payload,
+    };
+
+    setHomeworkSubmissions((prev) => [item, ...prev]);
+
+    setHomework((prev) =>
+      prev.map((hw) =>
+        hw.id === item.homeworkId
+          ? { ...hw, status: "SUBMITTED" }
+          : hw
+      )
+    );
+
+    pushNotification({
+      title: "Homework Submitted",
+      message: item.studentName + " submitted " + item.title,
+      role: "TEACHER",
+      icon: "cloud-upload-outline",
+    });
+  };
+
+  const reviewHomework = (submissionId, review = {}) => {
+    setHomeworkSubmissions((prev) =>
+      prev.map((item) =>
+        item.id === submissionId
+          ? {
+              ...item,
+              ...review,
+              status: "REVIEWED",
+              reviewedAt: today(),
+            }
+          : item
+      )
+    );
+
+    pushNotification({
+      title: "Homework Reviewed",
+      message: "Your homework has been reviewed by teacher.",
+      role: "STUDENT",
+      icon: "checkmark-circle-outline",
+    });
+  };
+
+  const createExam = (payload) => {
+    const item = {
+      id: makeId(),
+      status: "UPCOMING",
+      ...payload,
+    };
+
+    setExams((prev) => [item, ...prev]);
+
+    pushNotification({
+      title: "New Exam Scheduled",
+      message: item.title + " scheduled for " + item.subject,
+      role: "STUDENT",
+      icon: "calendar-outline",
+    });
+
+    pushNotification({
+      title: "Child Exam Scheduled",
+      message: item.title + " scheduled for " + item.subject,
+      role: "PARENT",
+      icon: "calendar-outline",
+    });
+  };
+
+  const uploadMarks = (payload) => {
+    const item = {
+      id: makeId(),
+      status: "RESULT",
+      ...payload,
+    };
+
+    setMarks((prev) => [item, ...prev]);
+
+    pushNotification({
+      title: "Marks Uploaded",
+      message: "New marks uploaded for " + item.subject,
+      role: "STUDENT",
+      icon: "bar-chart-outline",
+    });
+
+    pushNotification({
+      title: "Child Marks Uploaded",
+      message: "New marks uploaded for " + item.subject,
+      role: "PARENT",
+      icon: "bar-chart-outline",
+    });
+  };
+
+  const markAttendance = (payload) => {
+    const item = {
+      id: makeId(),
+      date: payload.date || today(),
+      status: payload.status || "PRESENT",
+      ...payload,
+    };
+
+    setAttendance((prev) => [item, ...prev]);
+
+    if (item.status !== "PRESENT") {
+      pushNotification({
+        title: "Attendance Alert",
+        message: item.studentName + " marked as " + item.status,
+        role: "PARENT",
+        icon: "warning-outline",
+      });
+    }
+  };
+
+  const createFee = (payload) => {
+    const item = {
+      id: makeId(),
+      status: "PENDING",
+      ...payload,
+    };
+
+    setFees((prev) => [item, ...prev]);
+
+    pushNotification({
+      title: "New Fee Created",
+      message: item.title + " amount ₹" + item.amount,
+      role: "PARENT",
+      icon: "card-outline",
+    });
+  };
+
+  const uploadPaymentProof = (payload) => {
+    const feeId = payload.feeId || payload.id;
+
+    setFees((prev) =>
+      prev.map((item) =>
+        item.id === feeId
+          ? {
+              ...item,
+              paymentProof: payload.paymentProof || payload.attachmentName || "payment-proof.jpg",
+              status: "SUBMITTED",
+              submittedAt: today(),
+            }
+          : item
+      )
+    );
+
+    pushNotification({
+      title: "Payment Proof Submitted",
+      message: "Parent uploaded payment proof for verification.",
+      role: "ADMIN",
+      icon: "card-outline",
+    });
+  };
+
+  const verifyPaymentProof = (feeId) => {
+    setFees((prev) =>
+      prev.map((item) =>
+        item.id === feeId
+          ? {
+              ...item,
+              status: "VERIFIED",
+              verifiedAt: today(),
+            }
+          : item
+      )
+    );
+
+    pushNotification({
+      title: "Payment Verified",
+      message: "Your fee payment proof was verified.",
+      role: "PARENT",
+      icon: "shield-checkmark-outline",
+    });
+  };
+
+  const rejectPaymentProof = (feeId) => {
+    setFees((prev) =>
+      prev.map((item) =>
+        item.id === feeId
+          ? {
+              ...item,
+              status: "REJECTED",
+              rejectedAt: today(),
+            }
+          : item
+      )
+    );
+
+    pushNotification({
+      title: "Payment Rejected",
+      message: "Your fee payment proof was rejected. Please upload again.",
+      role: "PARENT",
+      icon: "close-circle-outline",
+    });
+  };
+
+  const requestLeave = (payload) => {
+    const item = {
+      id: makeId(),
+      status: "REQUESTED",
+      requestedAt: today(),
+      ...payload,
+    };
+
+    setLeaveRequests((prev) => [item, ...prev]);
+
+    pushNotification({
+      title: "Leave Request",
+      message: (item.studentName || "Student") + " requested leave.",
+      role: "TEACHER",
+      icon: "mail-outline",
+    });
+
+    pushNotification({
+      title: "Leave Request",
+      message: (item.studentName || "Student") + " requested leave.",
+      role: "ADMIN",
+      icon: "mail-outline",
+    });
+  };
+
+  const approveLeave = (id) => {
+    setLeaveRequests((prev) =>
+      prev.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              status: "APPROVED",
+              updatedAt: today(),
+            }
+          : item
+      )
+    );
+
+    pushNotification({
+      title: "Leave Approved",
+      message: "Your leave request was approved.",
+      role: "STUDENT",
+      icon: "checkmark-circle-outline",
+    });
+
+    pushNotification({
+      title: "Child Leave Approved",
+      message: "Your child's leave request was approved.",
+      role: "PARENT",
+      icon: "checkmark-circle-outline",
+    });
+  };
+
+  const rejectLeave = (id) => {
+    setLeaveRequests((prev) =>
+      prev.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              status: "REJECTED",
+              updatedAt: today(),
+            }
+          : item
+      )
+    );
+
+    pushNotification({
+      title: "Leave Rejected",
+      message: "Your leave request was rejected.",
+      role: "STUDENT",
+      icon: "close-circle-outline",
+    });
+
+    pushNotification({
+      title: "Child Leave Rejected",
+      message: "Your child's leave request was rejected.",
+      role: "PARENT",
+      icon: "close-circle-outline",
+    });
+  };
+
+  const requestMeeting = (payload) => {
+    const item = {
+      id: makeId(),
+      status: "REQUESTED",
+      requestedAt: today(),
+      ...payload,
+    };
+
+    setMeetings((prev) => [item, ...prev]);
+
+    pushNotification({
+      title: "Meeting Request",
+      message: (item.parentName || "Parent") + " requested a meeting.",
+      role: "TEACHER",
+      icon: "people-outline",
+    });
+  };
+
+  const acceptMeeting = (id) => {
+    setMeetings((prev) =>
+      prev.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              status: "ACCEPTED",
+              updatedAt: today(),
+            }
+          : item
+      )
+    );
+
+    pushNotification({
+      title: "Meeting Accepted",
+      message: "Teacher accepted your meeting request.",
+      role: "PARENT",
+      icon: "checkmark-circle-outline",
+    });
+  };
+
+  const rescheduleMeeting = (id) => {
+    setMeetings((prev) =>
+      prev.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              status: "RESCHEDULED",
+              updatedAt: today(),
+            }
+          : item
+      )
+    );
+
+    pushNotification({
+      title: "Meeting Rescheduled",
+      message: "Teacher requested to reschedule your meeting.",
+      role: "PARENT",
+      icon: "time-outline",
+    });
+  };
+
+  const rejectMeeting = (id) => {
+    setMeetings((prev) =>
+      prev.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              status: "REJECTED",
+              updatedAt: today(),
+            }
+          : item
+      )
+    );
+
+    pushNotification({
+      title: "Meeting Rejected",
+      message: "Teacher rejected your meeting request.",
+      role: "PARENT",
+      icon: "close-circle-outline",
+    });
+  };
+
+  const awardAchievement = (payload) => {
+    const item = {
+      id: makeId(),
+      status: "AWARDED",
+      date: today(),
+      ...payload,
+    };
+
+    setAchievements((prev) => [item, ...prev]);
+
+    pushNotification({
+      title: "New Achievement",
+      message: item.title + " awarded to " + item.studentName,
+      role: "STUDENT",
+      icon: "ribbon-outline",
+    });
+
+    pushNotification({
+      title: "Child Achievement",
+      message: item.title + " awarded to your child.",
+      role: "PARENT",
+      icon: "ribbon-outline",
+    });
+  };
+
+  const addBehaviorRecord = (payload) => {
+    const item = {
+      id: makeId(),
+      date: today(),
+      status: "BEHAVIOR",
+      ...payload,
+    };
+
+    setBehaviorRecords((prev) => [item, ...prev]);
+
+    pushNotification({
+      title: "Behavior Record",
+      message: "New behavior record added.",
+      role: "STUDENT",
+      icon: "star-outline",
+    });
+
+    pushNotification({
+      title: "Child Behavior Record",
+      message: "New behavior record added for your child.",
+      role: "PARENT",
+      icon: "star-outline",
+    });
+  };
+
+  const uploadNotes = (payload) => {
+    const item = {
+      id: makeId(),
+      type: payload.type || "PDF",
+      status: "ACTIVE",
+      uploadedAt: today(),
+      ...payload,
+    };
+
+    setNotes((prev) => [item, ...prev]);
+    setStudyMaterials((prev) => [item, ...prev]);
+
+    pushNotification({
+      title: "New Study Material",
+      message: item.title + " uploaded for " + item.subject,
+      role: "STUDENT",
+      icon: "document-text-outline",
+    });
+  };
+
+  const markMaterialRead = (materialId) => {
+    setMaterialReads((prev) => {
+      const exists = prev.some((item) => item.materialId === materialId);
+      if (exists) return prev;
+
+      return [
+        {
+          id: makeId(),
+          materialId,
+          readAt: today(),
+        },
+        ...prev,
+      ];
+    });
+  };
+
+  const askDoubt = (payload) => {
+    const item = {
+      id: makeId(),
+      status: "PENDING",
+      askedAt: today(),
+      ...payload,
+    };
+
+    setDoubts((prev) => [item, ...prev]);
+
+    pushNotification({
+      title: "New Doubt",
+      message: (item.studentName || "Student") + " asked a doubt.",
+      role: "TEACHER",
+      icon: "help-circle-outline",
+    });
+  };
+
+  const answerDoubt = (id, answerText) => {
+    setDoubts((prev) =>
+      prev.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              answerText,
+              status: "ANSWERED",
+              answeredAt: today(),
+            }
+          : item
+      )
+    );
+
+    pushNotification({
+      title: "Doubt Answered",
+      message: "Your teacher answered your doubt.",
+      role: "STUDENT",
+      icon: "help-circle-outline",
+    });
+  };
+
+  const markDoubtSolved = (id) => {
+    setDoubts((prev) =>
+      prev.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              status: "SOLVED",
+              solvedAt: today(),
+            }
+          : item
+      )
+    );
+  };
+
+  const addTask = (payload) => {
+    const item = {
+      id: makeId(),
+      status: "PENDING",
+      date: payload.date || today(),
+      ...payload,
+    };
+
+    setTasks((prev) => [item, ...prev]);
+    setDailyTasks((prev) => [item, ...prev]);
+  };
+
+  const completeTask = (id) => {
+    setTasks((prev) =>
+      prev.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              status: "COMPLETED",
+              completedAt: today(),
+            }
+          : item
+      )
+    );
+
+    setDailyTasks((prev) =>
+      prev.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              status: "COMPLETED",
+              completedAt: today(),
+            }
+          : item
+      )
+    );
+  };
+
+  const createDailyDiary = (payload) => {
+    const item = {
+      id: makeId(),
+      date: payload.date || today(),
+      status: "DIARY",
+      acknowledgements: [],
+      ...payload,
+    };
+
+    setDiary((prev) => [item, ...prev]);
+    setDailyDiary((prev) => [item, ...prev]);
+
+    pushNotification({
+      title: "Daily Diary Added",
+      message: "Teacher added today's class diary.",
+      role: "STUDENT",
+      icon: "journal-outline",
+    });
+
+    pushNotification({
+      title: "Child Daily Diary",
+      message: "Teacher added today's diary for your child.",
+      role: "PARENT",
+      icon: "journal-outline",
+    });
+  };
+
+  const acknowledgeDiary = (payload) => {
+    const diaryId = typeof payload === "object" ? payload.diaryId : payload;
+    const ackId = typeof payload === "object" ? payload.parentId || payload.studentId || 1 : 1;
+
+    const updateList = (prev) =>
+      prev.map((item) => {
+        if (item.id !== diaryId) return item;
+
+        const oldAcks = item.acknowledgements || [];
+        const exists = oldAcks.includes(ackId);
+
+        return {
+          ...item,
+          acknowledgements: exists ? oldAcks : [...oldAcks, ackId],
+        };
+      });
+
+    setDiary(updateList);
+    setDailyDiary(updateList);
+  };
+
+  const addTimetable = (payload) => {
+    const item = {
+      id: makeId(),
+      status: "ACTIVE",
+      ...payload,
+    };
+
+    setTimetable((prev) => [item, ...prev]);
+
+    pushNotification({
+      title: "Timetable Updated",
+      message: "School timetable has been updated.",
+      role: "ALL",
+      icon: "time-outline",
+    });
+  };
+
+  const createEvent = (payload) => {
+    const item = {
+      id: makeId(),
+      type: payload.type || "EVENT",
+      status: "EVENT",
+      date: payload.date || today(),
+      ...payload,
+    };
+
+    setEvents((prev) => [item, ...prev]);
+
+    pushNotification({
+      title: "School Event",
+      message: item.title + " has been added.",
+      role: "ALL",
+      icon: "calendar-clear-outline",
+    });
+  };
+
+  const createAnnouncement = (payload) => {
+    const item = {
+      id: makeId(),
+      audience: payload.audience || "ALL",
+      priority: payload.priority || "NORMAL",
+      date: payload.date || today(),
+      status: "NOTICE",
+      ...payload,
+    };
+
+    setAnnouncements((prev) => [item, ...prev]);
+
+    pushNotification({
+      title: item.title || "Announcement",
+      message: item.message || "New school announcement.",
+      role: item.audience || "ALL",
+      icon: "megaphone-outline",
+    });
+  };
+
+  const addFeedback = (payload) => {
+    const item = {
+      id: makeId(),
+      status: "NEW",
+      createdAt: today(),
+      ...payload,
+    };
+
+    setFeedback((prev) => [item, ...prev]);
+
+    pushNotification({
+      title: "New Feedback",
+      message: "Teacher added feedback.",
+      role: "STUDENT",
+      icon: "chatbubble-ellipses-outline",
+    });
+
+    pushNotification({
+      title: "Child Feedback",
+      message: "Teacher added feedback for your child.",
+      role: "PARENT",
+      icon: "chatbubble-ellipses-outline",
+    });
+  };
+
+  const markNotificationRead = (id) => {
+    setNotifications((prev) =>
+      prev.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              status: "READ",
+            }
+          : item
+      )
+    );
+  };
+
+  const markAllNotificationsRead = () => {
+    setNotifications((prev) =>
+      prev.map((item) => ({
+        ...item,
+        status: "READ",
+      }))
+    );
+  };
+
+  const resetAppData = () => {
+    setStudents(INITIAL_STATE.students);
+    setTeachers(INITIAL_STATE.teachers);
+    setParents(INITIAL_STATE.parents);
+    setClasses(INITIAL_STATE.classes);
+    setSubjects(INITIAL_STATE.subjects);
+    setTeacherAssignments(INITIAL_STATE.teacherAssignments);
+
+    setHomework(INITIAL_STATE.homework);
+    setHomeworkSubmissions(INITIAL_STATE.homeworkSubmissions);
+    setExams(INITIAL_STATE.exams);
+    setAttendance(INITIAL_STATE.attendance);
+    setMarks(INITIAL_STATE.marks);
+
+    setFees(INITIAL_STATE.fees);
+    setLeaveRequests(INITIAL_STATE.leaveRequests);
+    setAchievements(INITIAL_STATE.achievements);
+    setBehaviorRecords(INITIAL_STATE.behaviorRecords);
+    setMeetings(INITIAL_STATE.meetings);
+
+    setNotes(INITIAL_STATE.notes);
+    setStudyMaterials(INITIAL_STATE.studyMaterials);
+    setMaterialReads(INITIAL_STATE.materialReads);
+
+    setDoubts(INITIAL_STATE.doubts);
+    setTasks(INITIAL_STATE.tasks);
+    setDailyTasks(INITIAL_STATE.dailyTasks);
+
+    setDiary(INITIAL_STATE.diary);
+    setDailyDiary(INITIAL_STATE.dailyDiary);
+
+    setTimetable(INITIAL_STATE.timetable);
+    setEvents(INITIAL_STATE.events);
+    setAnnouncements(INITIAL_STATE.announcements);
+    setNotifications(INITIAL_STATE.notifications);
+    setFeedback(INITIAL_STATE.feedback);
+  };
 
   const value = useMemo(
     () => ({
-      ...state,
-      appLoading,
+      students,
+      teachers,
+      parents,
+      classes,
+      subjects,
+      teacherAssignments,
 
-      resetAppData,
+      homework,
+      homeworkSubmissions,
+      exams,
+      attendance,
+      marks,
+
+      fees,
+      leaveRequests,
+      achievements,
+      behaviorRecords,
+      meetings,
+
+      notes,
+      studyMaterials,
+      materialReads,
+
+      doubts,
+      tasks,
+      dailyTasks,
+
+      diary,
+      dailyDiary,
+
+      timetable,
+      events,
+      announcements,
+      notifications,
+      feedback,
 
       addStudent,
       addTeacher,
@@ -1902,67 +1154,104 @@ export function AppProvider({ children }) {
       addSubject,
       assignTeacher,
 
-      addNotification,
-      markNotificationRead,
-
       createHomework,
-      getHomeworkStatus,
       submitHomework,
       reviewHomework,
-
       createExam,
       uploadMarks,
       markAttendance,
 
-      addTask,
-      updateTaskStatus,
-      addStudyPlan,
-      updateStudyPlanProgress,
-      addWeakTopic,
+      createFee,
+      uploadPaymentProof,
+      verifyPaymentProof,
+      rejectPaymentProof,
+
+      requestLeave,
+      approveLeave,
+      rejectLeave,
+
+      requestMeeting,
+      acceptMeeting,
+      rescheduleMeeting,
+      rejectMeeting,
+
+      awardAchievement,
+      addBehaviorRecord,
 
       uploadNotes,
-      markNotesAsRead,
+      markMaterialRead,
 
       askDoubt,
       answerDoubt,
       markDoubtSolved,
 
-      sendFeedback,
-
-      requestMeeting,
-      updateMeetingStatus,
-
-      createTimetablePeriod,
+      addTask,
+      completeTask,
 
       createDailyDiary,
       acknowledgeDiary,
 
-      submitLeaveRequest,
-      updateLeaveStatus,
-
-      addBehaviorRecord,
-      awardAchievement,
-
-      createFee,
-      uploadPaymentProof,
-      verifyFeePayment,
-
-      createDigitalId,
-
+      addTimetable,
       createEvent,
-      sendAnnouncement,
+      createAnnouncement,
+      addFeedback,
 
-      sendMessage,
+      markNotificationRead,
+      markAllNotificationsRead,
 
-      getStudentDashboard,
-      getParentDashboard,
-      getTeacherDashboard,
-      getAdminDashboard,
+      pushNotification,
+      resetAppData,
     }),
-    [state, appLoading]
+    [
+      students,
+      teachers,
+      parents,
+      classes,
+      subjects,
+      teacherAssignments,
+
+      homework,
+      homeworkSubmissions,
+      exams,
+      attendance,
+      marks,
+
+      fees,
+      leaveRequests,
+      achievements,
+      behaviorRecords,
+      meetings,
+
+      notes,
+      studyMaterials,
+      materialReads,
+
+      doubts,
+      tasks,
+      dailyTasks,
+
+      diary,
+      dailyDiary,
+
+      timetable,
+      events,
+      announcements,
+      notifications,
+      feedback,
+    ]
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
 
-export const useApp = () => useContext(AppContext);
+export function useApp() {
+  const context = useContext(AppContext);
+
+  if (!context) {
+    throw new Error("useApp must be used inside AppProvider");
+  }
+
+  return context;
+}
+
+export default AppContext;

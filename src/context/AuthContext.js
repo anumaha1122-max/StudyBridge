@@ -1,143 +1,156 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, {
+  createContext,
+  useContext,
+  useMemo,
+  useState,
+} from "react";
 
 const AuthContext = createContext(null);
 
-const AUTH_USER_KEY = "STUDYBRIDGE_AUTH_USER";
-const AUTH_USERS_KEY = "STUDYBRIDGE_USERS";
-
-const seedUsers = [
+const USERS = [
   {
     id: 1,
-    name: "Rahul Student",
-    email: "student@studybridge.com",
-    password: "student123",
-    role: "STUDENT",
-    studentId: 1,
-    classId: 1,
-    parentId: 1,
+    name: "Admin User",
+    email: "admin@studybridge.com",
+    password: "123456",
+    role: "ADMIN",
   },
   {
     id: 2,
-    name: "Anitha Teacher",
+    name: "Teacher User",
     email: "teacher@studybridge.com",
-    password: "teacher123",
+    password: "123456",
     role: "TEACHER",
-    teacherId: 1,
-    classId: 1,
   },
   {
     id: 3,
-    name: "Suresh Parent",
-    email: "parent@studybridge.com",
-    password: "parent123",
-    role: "PARENT",
-    parentId: 1,
-    childId: 1,
+    name: "Student User",
+    email: "student@studybridge.com",
+    password: "123456",
+    role: "STUDENT",
+    studentId: 1,
+    className: "Class 10",
   },
   {
     id: 4,
-    name: "School Admin",
-    email: "admin@studybridge.com",
-    password: "admin123",
-    role: "ADMIN",
-    adminId: 1,
+    name: "Parent User",
+    email: "parent@studybridge.com",
+    password: "123456",
+    role: "PARENT",
+    parentId: 1,
+    childId: 1,
+    childName: "Rahul Kumar",
   },
 ];
 
 export function AuthProvider({ children }) {
-  const [users, setUsers] = useState(seedUsers);
+  const [users, setUsers] = useState(USERS);
   const [currentUser, setCurrentUser] = useState(null);
   const [selectedRole, setSelectedRole] = useState(null);
-  const [authLoading, setAuthLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    restoreAuth();
-  }, []);
+  const normalizeRole = (role) => {
+    if (!role) return "STUDENT";
 
-  const restoreAuth = async () => {
-    try {
-      const savedUsers = await AsyncStorage.getItem(AUTH_USERS_KEY);
-      const savedUser = await AsyncStorage.getItem(AUTH_USER_KEY);
+    const value = String(role).toUpperCase();
 
-      if (savedUsers) {
-        setUsers(JSON.parse(savedUsers));
-      } else {
-        await AsyncStorage.setItem(AUTH_USERS_KEY, JSON.stringify(seedUsers));
-      }
+    if (value === "ADMIN") return "ADMIN";
+    if (value === "TEACHER") return "TEACHER";
+    if (value === "PARENT") return "PARENT";
+    if (value === "STUDENT") return "STUDENT";
 
-      if (savedUser) {
-        setCurrentUser(JSON.parse(savedUser));
-      }
-    } catch (error) {
-      console.log("Auth restore error:", error);
-    } finally {
-      setAuthLoading(false);
-    }
+    return "STUDENT";
   };
 
-  const persistUsers = async (nextUsers) => {
-    setUsers(nextUsers);
-    await AsyncStorage.setItem(AUTH_USERS_KEY, JSON.stringify(nextUsers));
+  const selectRole = (role) => {
+    setSelectedRole(normalizeRole(role));
   };
 
-  const login = async ({ email, password, role }) => {
-    const user = users.find(
+  const login = async ({ email, password, role } = {}) => {
+    setLoading(true);
+
+    const finalRole = normalizeRole(role || selectedRole);
+
+    let foundUser = users.find(
       (item) =>
-        item.email.toLowerCase() === String(email).toLowerCase() &&
+        item.email?.toLowerCase() === String(email || "").toLowerCase() &&
         item.password === password &&
-        item.role === role
+        item.role === finalRole
     );
 
-    if (!user) {
+    if (!foundUser) {
+      foundUser = users.find(
+        (item) =>
+          item.email?.toLowerCase() === String(email || "").toLowerCase() &&
+          item.password === password
+      );
+    }
+
+    if (!foundUser) {
+      setLoading(false);
       return {
         success: false,
-        message: "Invalid email, password, or selected role.",
+        message: "Invalid email or password.",
       };
     }
 
-    setCurrentUser(user);
-    setSelectedRole(role);
-    await AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+    const finalUser = {
+      ...foundUser,
+      role: normalizeRole(foundUser.role),
+    };
+
+    setCurrentUser(finalUser);
+    setSelectedRole(finalUser.role);
+    setLoading(false);
 
     return {
       success: true,
-      message: "Login successful",
-      user,
+      user: finalUser,
     };
   };
 
-  const register = async (payload) => {
+  const register = async ({
+    name,
+    email,
+    password,
+    phone,
+    role,
+  } = {}) => {
+    setLoading(true);
+
+    const finalRole = normalizeRole(role || selectedRole);
+
     const exists = users.some(
-      (item) => item.email.toLowerCase() === String(payload.email).toLowerCase()
+      (item) => item.email?.toLowerCase() === String(email || "").toLowerCase()
     );
 
     if (exists) {
+      setLoading(false);
       return {
         success: false,
-        message: "Email already exists.",
+        message: "Email already registered.",
       };
     }
 
     const newUser = {
       id: Date.now(),
-      name: payload.name,
-      email: payload.email,
-      phone: payload.phone,
-      password: payload.password,
-      role: payload.role,
+      name: name || "User",
+      email,
+      password,
+      phone,
+      role: finalRole,
+      studentId: finalRole === "STUDENT" ? 1 : undefined,
+      parentId: finalRole === "PARENT" ? 1 : undefined,
+      childId: finalRole === "PARENT" ? 1 : undefined,
     };
 
-    const nextUsers = [newUser, ...users];
-    await persistUsers(nextUsers);
-
+    setUsers((prev) => [newUser, ...prev]);
     setCurrentUser(newUser);
-    setSelectedRole(payload.role);
-    await AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(newUser));
+    setSelectedRole(finalRole);
+    setLoading(false);
 
     return {
       success: true,
-      message: "Registered successfully",
       user: newUser,
     };
   };
@@ -145,13 +158,10 @@ export function AuthProvider({ children }) {
   const logout = async () => {
     setCurrentUser(null);
     setSelectedRole(null);
-    await AsyncStorage.removeItem(AUTH_USER_KEY);
-  };
 
-  const resetAuthUsers = async () => {
-    await persistUsers(seedUsers);
-    setCurrentUser(null);
-    await AsyncStorage.removeItem(AUTH_USER_KEY);
+    return {
+      success: true,
+    };
   };
 
   const value = useMemo(
@@ -159,18 +169,31 @@ export function AuthProvider({ children }) {
       users,
       currentUser,
       selectedRole,
+      currentRole: currentUser?.role || selectedRole,
+      loading,
+      isLoggedIn: !!currentUser,
+
+      selectRole,
       setSelectedRole,
-      isAuthenticated: !!currentUser,
-      authLoading,
       login,
       register,
       logout,
-      resetAuthUsers,
+      normalizeRole,
     }),
-    [users, currentUser, selectedRole, authLoading]
+    [users, currentUser, selectedRole, loading]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-export const useAuth = () => useContext(AuthContext);
+export function useAuth() {
+  const context = useContext(AuthContext);
+
+  if (!context) {
+    throw new Error("useAuth must be used inside AuthProvider");
+  }
+
+  return context;
+}
+
+export default AuthContext;
