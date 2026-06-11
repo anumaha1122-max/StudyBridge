@@ -1,207 +1,118 @@
 import React, { useState } from "react";
-import {
-  SafeAreaView,
-  ScrollView,
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Text, StyleSheet } from "react-native";
 import { COLORS } from "../../utils/colors";
 import { useApp } from "../../context/AppContext";
-import AppHeader from "../../components/AppHeader";
 import AppInput from "../../components/AppInput";
 import AppButton from "../../components/AppButton";
 import SuccessModal from "../../components/SuccessModal";
+import AchievementCard from "../../components/AchievementCard";
+import FormScreenWrapper, { FormCard, FormSectionTitle, InfoBox } from "../../components/FormScreenWrapper";
 
 export default function ManageAchievementsScreen({ navigation }) {
   const app = useApp();
-  const [success, setSuccess] = useState("");
-  
+
   const [form, setForm] = useState({
-    studentId: 1,
+    studentName: "",
     title: "",
     description: "",
-    awardedBy: "School Admin",
+    awardedBy: "Admin",
   });
 
-  const add = () => {
-    if (!form.title) {
-      setSuccess("Please enter achievement title.");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const achievements = app.achievements || [];
+
+  const update = (key, value) => setForm({ ...form, [key]: value });
+
+  const submit = () => {
+    if (!form.studentName || !form.title) {
+      setError("Please fill student name and achievement title.");
       return;
     }
 
-    app.awardAchievement(form);
-    setForm({ studentId: 1, title: "", description: "", awardedBy: "School Admin" });
-    setSuccess("Achievement awarded.");
+    if (app.awardAchievement) {
+      app.awardAchievement({
+        ...form,
+        status: "AWARDED",
+      });
+    }
+
+    setError("");
+    setSuccess("Achievement awarded successfully.");
+    setForm({ studentName: "", title: "", description: "", awardedBy: "Admin" });
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <AppHeader title="Achievements" navigation={navigation} />
+    <FormScreenWrapper
+      title="Achievements"
+      subtitle="Award certificates and achievements to students."
+      icon="ribbon-outline"
+      color={COLORS.purple}
+      navigation={navigation}
+    >
+      <FormCard>
+        <FormSectionTitle title="Award Achievement" subtitle="Add student achievement record." />
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
-          <Text style={styles.heroTitle}>Achievements</Text>
-          <Text style={styles.heroSub}>Award badges and achievements to students.</Text>
-        </View>
+        {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <View style={styles.form}>
-          <AppInput label="Student ID" value={String(form.studentId)} onChangeText={(v) => setForm({ ...form, studentId: Number(v) || 1 })} keyboardType="numeric" />
-          <AppInput label="Achievement Title" value={form.title} onChangeText={(v) => setForm({ ...form, title: v })} />
-          <AppInput label="Description" value={form.description} onChangeText={(v) => setForm({ ...form, description: v })} multiline />
-          <AppButton title="Award Achievement" onPress={add} />
-        </View>
+        <AppInput
+          label="Student Name"
+          value={form.studentName}
+          onChangeText={(v) => update("studentName", v)}
+          placeholder="Enter student name"
+        />
 
-        <Text style={styles.sectionTitle}>Achievement History</Text>
+        <AppInput
+          label="Achievement Title"
+          value={form.title}
+          onChangeText={(v) => update("title", v)}
+          placeholder="Example: Best Performer"
+        />
 
-        {app.achievements.map((item) => (
-          <AdminCard
-            key={item.id}
-            title={item.title}
-            subtitle={(item.studentName || "Student") + " • " + item.description}
-            status="AWARDED"
-            icon="ribbon-outline"
-          />
-        ))}
+        <AppInput
+          label="Description"
+          value={form.description}
+          onChangeText={(v) => update("description", v)}
+          placeholder="Achievement details"
+          multiline
+        />
 
-        <SuccessModal visible={!!success} title="Achievement" message={success} onClose={() => setSuccess("")} />
-      </ScrollView>
-    </SafeAreaView>
+        <InfoBox color={COLORS.purple} text="Achievement will be visible to student and parent." />
+
+        <AppButton title="Award Achievement" onPress={submit} />
+      </FormCard>
+
+      <FormCard>
+        <FormSectionTitle title="Achievements List" subtitle="Recently awarded achievements." />
+
+        {achievements.length === 0 ? (
+          <InfoBox color={COLORS.muted} text="No achievements awarded yet." />
+        ) : (
+          achievements.slice(0, 12).map((item) => (
+            <AchievementCard key={item.id} item={item} />
+          ))
+        )}
+      </FormCard>
+
+      <SuccessModal
+        visible={!!success}
+        title="Achievement"
+        message={success}
+        onClose={() => setSuccess("")}
+      />
+    </FormScreenWrapper>
   );
-
 }
 
-const AdminCard = ({ title, subtitle, status, icon = "document-text-outline", children }) => (
-  <View style={styles.card}>
-    <View style={styles.cardTop}>
-      <View style={styles.iconBox}>
-        <Ionicons name={icon} size={22} color={COLORS.primary} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.cardTitle}>{title}</Text>
-        {subtitle ? <Text style={styles.cardSub}>{subtitle}</Text> : null}
-      </View>
-      {status ? <Text style={styles.badge}>{status}</Text> : null}
-    </View>
-    {children ? <View style={{ marginTop: 12 }}>{children}</View> : null}
-  </View>
-);
-
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  content: {
-    padding: 16,
-    paddingBottom: 110,
-  },
-  hero: {
-    backgroundColor: COLORS.navy,
-    borderRadius: 24,
-    padding: 18,
-    marginBottom: 16,
-  },
-  heroTitle: {
-    color: COLORS.white,
-    fontSize: 24,
-    fontWeight: "900",
-  },
-  heroSub: {
-    color: "#CBD5E1",
-    fontSize: 13,
-    marginTop: 6,
-    lineHeight: 19,
-  },
-  sectionTitle: {
-    color: COLORS.text,
-    fontSize: 18,
-    fontWeight: "900",
-    marginTop: 8,
-    marginBottom: 12,
-  },
-  form: {
-    backgroundColor: COLORS.white,
-    borderRadius: 22,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 16,
-  },
-  card: {
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 12,
-  },
-  cardTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  iconBox: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: COLORS.primary + "15",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cardTitle: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "900",
-  },
-  cardSub: {
-    color: COLORS.muted,
+  error: {
+    color: COLORS.danger,
+    backgroundColor: COLORS.dangerLight,
+    padding: 12,
+    borderRadius: 16,
     fontSize: 12,
-    marginTop: 4,
-    lineHeight: 18,
-  },
-  badge: {
-    backgroundColor: COLORS.primary + "18",
-    color: COLORS.primary,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-    fontSize: 10,
-    fontWeight: "900",
-    overflow: "hidden",
-  },
-  row: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  half: {
-    flex: 1,
-  },
-  statGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  statCard: {
-    width: "48%",
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 12,
-  },
-  statValue: {
-    fontSize: 24,
-    color: COLORS.text,
-    fontWeight: "900",
-  },
-  statLabel: {
-    color: COLORS.muted,
-    fontSize: 12,
-    marginTop: 4,
-    fontWeight: "700",
+    fontWeight: "800",
+    marginBottom: 14,
   },
 });

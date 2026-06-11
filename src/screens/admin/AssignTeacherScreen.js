@@ -1,203 +1,138 @@
 import React, { useState } from "react";
-import {
-  SafeAreaView,
-  ScrollView,
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Text, StyleSheet } from "react-native";
 import { COLORS } from "../../utils/colors";
 import { useApp } from "../../context/AppContext";
-import AppHeader from "../../components/AppHeader";
 import AppInput from "../../components/AppInput";
 import AppButton from "../../components/AppButton";
 import SuccessModal from "../../components/SuccessModal";
+import BaseListCard from "../../components/BaseListCard";
+import FormScreenWrapper, { FormCard, FormSectionTitle, ChipGroup, InfoBox } from "../../components/FormScreenWrapper";
 
 export default function AssignTeacherScreen({ navigation }) {
   const app = useApp();
-  const [success, setSuccess] = useState("");
-  
+
   const [form, setForm] = useState({
-    teacherId: 1,
-    classId: 1,
+    teacherName: "",
     subject: "Mathematics",
+    className: "Class 10",
+    section: "A",
   });
 
-  const add = () => {
-    if (app.assignTeacher) {
-      app.assignTeacher(form);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const assignments = app.teacherAssignments || [];
+
+  const update = (key, value) => setForm({ ...form, [key]: value });
+
+  const submit = () => {
+    if (!form.teacherName) {
+      setError("Please fill teacher name.");
+      return;
     }
 
-    setSuccess("Teacher assigned to class and subject.");
+    if (app.assignTeacher) {
+      app.assignTeacher({
+        ...form,
+        status: "ASSIGNED",
+      });
+    }
+
+    setError("");
+    setSuccess("Teacher assigned successfully.");
+    setForm({ teacherName: "", subject: "Mathematics", className: "Class 10", section: "A" });
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <AppHeader title="Assign Teacher" navigation={navigation} />
+    <FormScreenWrapper
+      title="Assign Teacher"
+      subtitle="Assign teachers to classes and subjects."
+      icon="git-branch-outline"
+      color={COLORS.primary}
+      navigation={navigation}
+    >
+      <FormCard>
+        <FormSectionTitle title="Teacher Assignment" subtitle="Map teacher with class, section and subject." />
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
-          <Text style={styles.heroTitle}>Teacher Assignment</Text>
-          <Text style={styles.heroSub}>Assign teacher to class and subject.</Text>
-        </View>
+        {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <View style={styles.form}>
-          <AppInput label="Teacher ID" value={String(form.teacherId)} onChangeText={(v) => setForm({ ...form, teacherId: Number(v) || 1 })} keyboardType="numeric" />
-          <AppInput label="Class ID" value={String(form.classId)} onChangeText={(v) => setForm({ ...form, classId: Number(v) || 1 })} keyboardType="numeric" />
-          <AppInput label="Subject" value={form.subject} onChangeText={(v) => setForm({ ...form, subject: v })} />
-          <AppButton title="Assign Teacher" onPress={add} />
-        </View>
+        <Text style={styles.label}>Subject</Text>
+        <ChipGroup
+          value={form.subject}
+          onChange={(v) => update("subject", v)}
+          options={["Mathematics", "Science", "English", "Social", "Computer"]}
+        />
 
-        <Text style={styles.sectionTitle}>Teachers</Text>
+        <Text style={styles.label}>Class</Text>
+        <ChipGroup
+          value={form.className}
+          onChange={(v) => update("className", v)}
+          options={["Class 6", "Class 7", "Class 8", "Class 9", "Class 10"]}
+        />
 
-        {app.teachers.map((teacher) => (
-          <AdminCard
-            key={teacher.id}
-            title={teacher.name}
-            subtitle={(teacher.subject || "Subject") + " • " + (teacher.className || "No class")}
-            status="ASSIGNED"
-            icon="git-branch-outline"
-          />
-        ))}
+        <Text style={styles.label}>Section</Text>
+        <ChipGroup
+          value={form.section}
+          onChange={(v) => update("section", v)}
+          options={["A", "B", "C", "D"]}
+        />
 
-        <SuccessModal visible={!!success} title="Assignment" message={success} onClose={() => setSuccess("")} />
-      </ScrollView>
-    </SafeAreaView>
+        <AppInput
+          label="Teacher Name"
+          value={form.teacherName}
+          onChangeText={(v) => update("teacherName", v)}
+          placeholder="Enter teacher name"
+        />
+
+        <InfoBox text="This assignment controls teacher dashboard class access later." />
+
+        <AppButton title="Assign Teacher" onPress={submit} />
+      </FormCard>
+
+      <FormCard>
+        <FormSectionTitle title="Assignments" subtitle="Recent teacher assignments." />
+
+        {assignments.length === 0 ? (
+          <InfoBox color={COLORS.muted} text="No teacher assignments yet." />
+        ) : (
+          assignments.slice(0, 12).map((item) => (
+            <BaseListCard
+              key={item.id}
+              title={item.teacherName || "Teacher"}
+              subtitle={(item.className || "Class") + " " + (item.section || "") + " • " + (item.subject || "Subject")}
+              meta="Teacher assignment"
+              status={item.status || "ASSIGNED"}
+              icon="git-branch-outline"
+              color={COLORS.primary}
+            />
+          ))
+        )}
+      </FormCard>
+
+      <SuccessModal
+        visible={!!success}
+        title="Teacher Assigned"
+        message={success}
+        onClose={() => setSuccess("")}
+      />
+    </FormScreenWrapper>
   );
-
 }
 
-const AdminCard = ({ title, subtitle, status, icon = "document-text-outline", children }) => (
-  <View style={styles.card}>
-    <View style={styles.cardTop}>
-      <View style={styles.iconBox}>
-        <Ionicons name={icon} size={22} color={COLORS.primary} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.cardTitle}>{title}</Text>
-        {subtitle ? <Text style={styles.cardSub}>{subtitle}</Text> : null}
-      </View>
-      {status ? <Text style={styles.badge}>{status}</Text> : null}
-    </View>
-    {children ? <View style={{ marginTop: 12 }}>{children}</View> : null}
-  </View>
-);
-
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  content: {
-    padding: 16,
-    paddingBottom: 110,
-  },
-  hero: {
-    backgroundColor: COLORS.navy,
-    borderRadius: 24,
-    padding: 18,
-    marginBottom: 16,
-  },
-  heroTitle: {
-    color: COLORS.white,
-    fontSize: 24,
-    fontWeight: "900",
-  },
-  heroSub: {
-    color: "#CBD5E1",
+  label: {
+    color: COLORS.text,
     fontSize: 13,
-    marginTop: 6,
-    lineHeight: 19,
-  },
-  sectionTitle: {
-    color: COLORS.text,
-    fontSize: 18,
     fontWeight: "900",
-    marginTop: 8,
-    marginBottom: 12,
+    marginBottom: 8,
   },
-  form: {
-    backgroundColor: COLORS.white,
-    borderRadius: 22,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 16,
-  },
-  card: {
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 12,
-  },
-  cardTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  iconBox: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: COLORS.primary + "15",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cardTitle: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "900",
-  },
-  cardSub: {
-    color: COLORS.muted,
+  error: {
+    color: COLORS.danger,
+    backgroundColor: COLORS.dangerLight,
+    padding: 12,
+    borderRadius: 16,
     fontSize: 12,
-    marginTop: 4,
-    lineHeight: 18,
-  },
-  badge: {
-    backgroundColor: COLORS.primary + "18",
-    color: COLORS.primary,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-    fontSize: 10,
-    fontWeight: "900",
-    overflow: "hidden",
-  },
-  row: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  half: {
-    flex: 1,
-  },
-  statGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  statCard: {
-    width: "48%",
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 12,
-  },
-  statValue: {
-    fontSize: 24,
-    color: COLORS.text,
-    fontWeight: "900",
-  },
-  statLabel: {
-    color: COLORS.muted,
-    fontSize: 12,
-    marginTop: 4,
-    fontWeight: "700",
+    fontWeight: "800",
+    marginBottom: 14,
   },
 });

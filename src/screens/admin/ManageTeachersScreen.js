@@ -1,209 +1,162 @@
 import React, { useState } from "react";
-import {
-  SafeAreaView,
-  ScrollView,
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Text, StyleSheet } from "react-native";
 import { COLORS } from "../../utils/colors";
 import { useApp } from "../../context/AppContext";
-import AppHeader from "../../components/AppHeader";
 import AppInput from "../../components/AppInput";
 import AppButton from "../../components/AppButton";
 import SuccessModal from "../../components/SuccessModal";
+import BaseListCard from "../../components/BaseListCard";
+import FormScreenWrapper, {
+  FormCard,
+  FormSectionTitle,
+  ChipGroup,
+  InfoBox,
+} from "../../components/FormScreenWrapper";
 
 export default function ManageTeachersScreen({ navigation }) {
   const app = useApp();
-  const [success, setSuccess] = useState("");
-  
+
   const [form, setForm] = useState({
     name: "",
-    subject: "",
-    className: "10th A",
+    email: "",
+    phone: "",
+    subject: "Mathematics",
+    qualification: "",
   });
 
-  const add = () => {
-    if (!form.name || !form.subject) {
-      setSuccess("Please enter teacher name and subject.");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const teachers = app.teachers || [];
+
+  const update = (key, value) => setForm({ ...form, [key]: value });
+
+  const submit = () => {
+    if (!form.name || !form.email || !form.phone) {
+      setError("Please fill teacher name, email and phone.");
       return;
     }
 
     if (app.addTeacher) {
-      app.addTeacher(form);
+      app.addTeacher({
+        ...form,
+        status: "ACTIVE",
+      });
     }
 
-    setForm({ name: "", subject: "", className: "10th A" });
+    setError("");
     setSuccess("Teacher added successfully.");
+    setForm({
+      name: "",
+      email: "",
+      phone: "",
+      subject: "Mathematics",
+      qualification: "",
+    });
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <AppHeader title="Manage Teachers" navigation={navigation} />
+    <FormScreenWrapper
+      title="Manage Teachers"
+      subtitle="Add teachers and assign subjects."
+      icon="school-outline"
+      color={COLORS.secondary}
+      navigation={navigation}
+    >
+      <FormCard>
+        <FormSectionTitle
+          title="Add Teacher"
+          subtitle="Create teacher profile and subject specialization."
+        />
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
-          <Text style={styles.heroTitle}>Teachers</Text>
-          <Text style={styles.heroSub}>Add teachers and assign teaching details.</Text>
-        </View>
+        {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <View style={styles.form}>
-          <AppInput label="Teacher Name" value={form.name} onChangeText={(v) => setForm({ ...form, name: v })} />
-          <AppInput label="Subject" value={form.subject} onChangeText={(v) => setForm({ ...form, subject: v })} />
-          <AppInput label="Class" value={form.className} onChangeText={(v) => setForm({ ...form, className: v })} />
-          <AppButton title="Add Teacher" onPress={add} />
-        </View>
+        <Text style={styles.label}>Subject</Text>
+        <ChipGroup
+          value={form.subject}
+          onChange={(v) => update("subject", v)}
+          options={["Mathematics", "Science", "English", "Social", "Computer"]}
+        />
 
-        <Text style={styles.sectionTitle}>Teacher List</Text>
+        <AppInput
+          label="Teacher Name"
+          value={form.name}
+          onChangeText={(v) => update("name", v)}
+          placeholder="Enter teacher name"
+        />
 
-        {app.teachers.map((teacher) => (
-          <AdminCard
-            key={teacher.id}
-            title={teacher.name}
-            subtitle={(teacher.subject || "Subject") + " • " + (teacher.className || "Class not assigned")}
-            status="ACTIVE"
-            icon="school-outline"
-          />
-        ))}
+        <AppInput
+          label="Teacher Email"
+          value={form.email}
+          onChangeText={(v) => update("email", v)}
+          placeholder="Enter email"
+          keyboardType="email-address"
+        />
 
-        <SuccessModal visible={!!success} title="Teachers" message={success} onClose={() => setSuccess("")} />
-      </ScrollView>
-    </SafeAreaView>
+        <AppInput
+          label="Teacher Phone"
+          value={form.phone}
+          onChangeText={(v) => update("phone", v)}
+          placeholder="Enter phone"
+          keyboardType="phone-pad"
+        />
+
+        <AppInput
+          label="Qualification"
+          value={form.qualification}
+          onChangeText={(v) => update("qualification", v)}
+          placeholder="Example: M.Sc, B.Ed"
+        />
+
+        <InfoBox color={COLORS.secondary} text="Teacher can login and manage homework, attendance and marks." />
+
+        <AppButton title="Add Teacher" onPress={submit} />
+      </FormCard>
+
+      <FormCard>
+        <FormSectionTitle title="Teachers List" subtitle="Recently added teachers." />
+
+        {teachers.length === 0 ? (
+          <InfoBox color={COLORS.muted} text="No teachers added yet." />
+        ) : (
+          teachers.slice(0, 12).map((item) => (
+            <BaseListCard
+              key={item.id}
+              title={item.name || "Teacher"}
+              subtitle={(item.subject || "Subject") + " • " + (item.phone || "No phone")}
+              meta={item.email || item.qualification || ""}
+              status={item.status || "ACTIVE"}
+              icon="school-outline"
+              color={COLORS.secondary}
+            />
+          ))
+        )}
+      </FormCard>
+
+      <SuccessModal
+        visible={!!success}
+        title="Teacher"
+        message={success}
+        onClose={() => setSuccess("")}
+      />
+    </FormScreenWrapper>
   );
-
 }
 
-const AdminCard = ({ title, subtitle, status, icon = "document-text-outline", children }) => (
-  <View style={styles.card}>
-    <View style={styles.cardTop}>
-      <View style={styles.iconBox}>
-        <Ionicons name={icon} size={22} color={COLORS.primary} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.cardTitle}>{title}</Text>
-        {subtitle ? <Text style={styles.cardSub}>{subtitle}</Text> : null}
-      </View>
-      {status ? <Text style={styles.badge}>{status}</Text> : null}
-    </View>
-    {children ? <View style={{ marginTop: 12 }}>{children}</View> : null}
-  </View>
-);
-
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  content: {
-    padding: 16,
-    paddingBottom: 110,
-  },
-  hero: {
-    backgroundColor: COLORS.navy,
-    borderRadius: 24,
-    padding: 18,
-    marginBottom: 16,
-  },
-  heroTitle: {
-    color: COLORS.white,
-    fontSize: 24,
-    fontWeight: "900",
-  },
-  heroSub: {
-    color: "#CBD5E1",
+  label: {
+    color: COLORS.text,
     fontSize: 13,
-    marginTop: 6,
-    lineHeight: 19,
-  },
-  sectionTitle: {
-    color: COLORS.text,
-    fontSize: 18,
     fontWeight: "900",
-    marginTop: 8,
-    marginBottom: 12,
+    marginBottom: 8,
   },
-  form: {
-    backgroundColor: COLORS.white,
-    borderRadius: 22,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 16,
-  },
-  card: {
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 12,
-  },
-  cardTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  iconBox: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: COLORS.primary + "15",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cardTitle: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "900",
-  },
-  cardSub: {
-    color: COLORS.muted,
+  error: {
+    color: COLORS.danger,
+    backgroundColor: COLORS.dangerLight,
+    padding: 12,
+    borderRadius: 16,
     fontSize: 12,
-    marginTop: 4,
-    lineHeight: 18,
-  },
-  badge: {
-    backgroundColor: COLORS.primary + "18",
-    color: COLORS.primary,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-    fontSize: 10,
-    fontWeight: "900",
-    overflow: "hidden",
-  },
-  row: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  half: {
-    flex: 1,
-  },
-  statGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  statCard: {
-    width: "48%",
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 12,
-  },
-  statValue: {
-    fontSize: 24,
-    color: COLORS.text,
-    fontWeight: "900",
-  },
-  statLabel: {
-    color: COLORS.muted,
-    fontSize: 12,
-    marginTop: 4,
-    fontWeight: "700",
+    fontWeight: "800",
+    marginBottom: 14,
   },
 });

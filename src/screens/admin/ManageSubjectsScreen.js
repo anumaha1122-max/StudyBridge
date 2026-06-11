@@ -1,207 +1,130 @@
 import React, { useState } from "react";
-import {
-  SafeAreaView,
-  ScrollView,
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Text, StyleSheet } from "react-native";
 import { COLORS } from "../../utils/colors";
 import { useApp } from "../../context/AppContext";
-import AppHeader from "../../components/AppHeader";
 import AppInput from "../../components/AppInput";
 import AppButton from "../../components/AppButton";
 import SuccessModal from "../../components/SuccessModal";
+import BaseListCard from "../../components/BaseListCard";
+import FormScreenWrapper, { FormCard, FormSectionTitle, ChipGroup, InfoBox } from "../../components/FormScreenWrapper";
 
 export default function ManageSubjectsScreen({ navigation }) {
   const app = useApp();
-  const [success, setSuccess] = useState("");
-  
+
   const [form, setForm] = useState({
     name: "",
-    classId: 1,
+    className: "Class 10",
+    teacherName: "",
   });
 
-  const add = () => {
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const subjects = app.subjects || [];
+
+  const update = (key, value) => setForm({ ...form, [key]: value });
+
+  const submit = () => {
     if (!form.name) {
-      setSuccess("Please enter subject name.");
+      setError("Please fill subject name.");
       return;
     }
 
     if (app.addSubject) {
-      app.addSubject(form);
+      app.addSubject({
+        ...form,
+        status: "ACTIVE",
+      });
     }
 
-    setForm({ name: "", classId: 1 });
+    setError("");
     setSuccess("Subject added successfully.");
+    setForm({ name: "", className: "Class 10", teacherName: "" });
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <AppHeader title="Manage Subjects" navigation={navigation} />
+    <FormScreenWrapper
+      title="Manage Subjects"
+      subtitle="Create subjects and map teachers."
+      icon="library-outline"
+      color={COLORS.secondary}
+      navigation={navigation}
+    >
+      <FormCard>
+        <FormSectionTitle title="Add Subject" subtitle="Create subject for selected class." />
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
-          <Text style={styles.heroTitle}>Subjects</Text>
-          <Text style={styles.heroSub}>Create subjects and link them to classes.</Text>
-        </View>
+        {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <View style={styles.form}>
-          <AppInput label="Subject Name" value={form.name} onChangeText={(v) => setForm({ ...form, name: v })} />
-          <AppInput label="Class ID" value={String(form.classId)} onChangeText={(v) => setForm({ ...form, classId: Number(v) || 1 })} keyboardType="numeric" />
-          <AppButton title="Add Subject" onPress={add} />
-        </View>
+        <Text style={styles.label}>Class</Text>
+        <ChipGroup
+          value={form.className}
+          onChange={(v) => update("className", v)}
+          options={["Class 6", "Class 7", "Class 8", "Class 9", "Class 10"]}
+        />
 
-        <Text style={styles.sectionTitle}>Subject List</Text>
+        <AppInput
+          label="Subject Name"
+          value={form.name}
+          onChangeText={(v) => update("name", v)}
+          placeholder="Example: Mathematics"
+        />
 
-        {app.subjects.map((subject) => (
-          <AdminCard
-            key={subject.id}
-            title={subject.name}
-            subtitle={"Class ID: " + subject.classId}
-            status="ACTIVE"
-            icon="library-outline"
-          />
-        ))}
+        <AppInput
+          label="Teacher Name"
+          value={form.teacherName}
+          onChangeText={(v) => update("teacherName", v)}
+          placeholder="Example: Mr. Kumar"
+        />
 
-        <SuccessModal visible={!!success} title="Subjects" message={success} onClose={() => setSuccess("")} />
-      </ScrollView>
-    </SafeAreaView>
+        <InfoBox color={COLORS.secondary} text="Subjects are used in homework, marks, notes and exams." />
+
+        <AppButton title="Add Subject" onPress={submit} />
+      </FormCard>
+
+      <FormCard>
+        <FormSectionTitle title="Subjects List" subtitle="Recently added subjects." />
+
+        {subjects.length === 0 ? (
+          <InfoBox color={COLORS.muted} text="No subjects added yet." />
+        ) : (
+          subjects.slice(0, 12).map((item) => (
+            <BaseListCard
+              key={item.id}
+              title={item.name || "Subject"}
+              subtitle={(item.className || "Class") + " • " + (item.teacherName || "No teacher")}
+              meta="Subject management"
+              status={item.status || "ACTIVE"}
+              icon="library-outline"
+              color={COLORS.secondary}
+            />
+          ))
+        )}
+      </FormCard>
+
+      <SuccessModal
+        visible={!!success}
+        title="Subject"
+        message={success}
+        onClose={() => setSuccess("")}
+      />
+    </FormScreenWrapper>
   );
-
 }
 
-const AdminCard = ({ title, subtitle, status, icon = "document-text-outline", children }) => (
-  <View style={styles.card}>
-    <View style={styles.cardTop}>
-      <View style={styles.iconBox}>
-        <Ionicons name={icon} size={22} color={COLORS.primary} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.cardTitle}>{title}</Text>
-        {subtitle ? <Text style={styles.cardSub}>{subtitle}</Text> : null}
-      </View>
-      {status ? <Text style={styles.badge}>{status}</Text> : null}
-    </View>
-    {children ? <View style={{ marginTop: 12 }}>{children}</View> : null}
-  </View>
-);
-
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  content: {
-    padding: 16,
-    paddingBottom: 110,
-  },
-  hero: {
-    backgroundColor: COLORS.navy,
-    borderRadius: 24,
-    padding: 18,
-    marginBottom: 16,
-  },
-  heroTitle: {
-    color: COLORS.white,
-    fontSize: 24,
-    fontWeight: "900",
-  },
-  heroSub: {
-    color: "#CBD5E1",
+  label: {
+    color: COLORS.text,
     fontSize: 13,
-    marginTop: 6,
-    lineHeight: 19,
-  },
-  sectionTitle: {
-    color: COLORS.text,
-    fontSize: 18,
     fontWeight: "900",
-    marginTop: 8,
-    marginBottom: 12,
+    marginBottom: 8,
   },
-  form: {
-    backgroundColor: COLORS.white,
-    borderRadius: 22,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 16,
-  },
-  card: {
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 12,
-  },
-  cardTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  iconBox: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: COLORS.primary + "15",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cardTitle: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "900",
-  },
-  cardSub: {
-    color: COLORS.muted,
+  error: {
+    color: COLORS.danger,
+    backgroundColor: COLORS.dangerLight,
+    padding: 12,
+    borderRadius: 16,
     fontSize: 12,
-    marginTop: 4,
-    lineHeight: 18,
-  },
-  badge: {
-    backgroundColor: COLORS.primary + "18",
-    color: COLORS.primary,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-    fontSize: 10,
-    fontWeight: "900",
-    overflow: "hidden",
-  },
-  row: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  half: {
-    flex: 1,
-  },
-  statGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  statCard: {
-    width: "48%",
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 12,
-  },
-  statValue: {
-    fontSize: 24,
-    color: COLORS.text,
-    fontWeight: "900",
-  },
-  statLabel: {
-    color: COLORS.muted,
-    fontSize: 12,
-    marginTop: 4,
-    fontWeight: "700",
+    fontWeight: "800",
+    marginBottom: 14,
   },
 });

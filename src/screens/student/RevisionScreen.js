@@ -1,253 +1,82 @@
-import React, { useMemo, useState } from "react";
-import {
-  SafeAreaView,
-  ScrollView,
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import React from "react";
 import { COLORS } from "../../utils/colors";
-import { useApp } from "../../context/AppContext";
-import { useAuth } from "../../context/AuthContext";
-import AppHeader from "../../components/AppHeader";
-import AppInput from "../../components/AppInput";
-import AppButton from "../../components/AppButton";
-import SuccessModal from "../../components/SuccessModal";
+import AnalyticsCard from "../../components/AnalyticsCard";
+import AnalyticsScreenWrapper, {
+  AnalyticsGrid,
+  AnalyticsSection,
+  InsightBox,
+  ProgressRow,
+} from "../../components/AnalyticsScreenWrapper";
+import BaseListCard from "../../components/BaseListCard";
 
-export default function RevisionScreen({ navigation, route }) {
-  const app = useApp();
-  const { currentUser, logout } = useAuth();
-  const studentId = currentUser?.studentId || 1;
-  const [success, setSuccess] = useState("");
-  
-  const weak = app.weakTopics.filter((w) => w.studentId === studentId);
-  const exams = app.exams;
+const topics = [
+  { id: 1, title: "Mathematics", subtitle: "Algebra, Geometry, Trigonometry", progress: 72 },
+  { id: 2, title: "Science", subtitle: "Physics, Chemistry, Biology", progress: 65 },
+  { id: 3, title: "English", subtitle: "Grammar, Writing, Reading", progress: 80 },
+  { id: 4, title: "Social", subtitle: "History, Geography, Civics", progress: 58 },
+];
+
+export default function RevisionScreen({ navigation }) {
+  const average =
+    Math.round(topics.reduce((sum, item) => sum + item.progress, 0) / topics.length);
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <AppHeader title="Revision" navigation={navigation} />
+    <AnalyticsScreenWrapper
+      navigation={navigation}
+      title="Revision Zone"
+      subtitle="Revise subjects and improve weak areas."
+      icon="refresh-circle-outline"
+      color={COLORS.secondary}
+    >
+      <AnalyticsGrid>
+        <AnalyticsCard
+          title="Average"
+          value={average + "%"}
+          subtitle="Revision completion"
+          icon="trending-up-outline"
+          color={COLORS.secondary}
+        />
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
-          <Text style={styles.heroTitle}>Revision Plan</Text>
-          <Text style={styles.heroSub}>Focus on exams and weak topics for better marks.</Text>
-        </View>
+        <AnalyticsCard
+          title="Subjects"
+          value={topics.length}
+          subtitle="Revision subjects"
+          icon="library-outline"
+          color={COLORS.primary}
+        />
+      </AnalyticsGrid>
 
-        <Text style={styles.sectionTitle}>Upcoming Exams</Text>
-
-        {exams.map((exam) => (
-          <SCard
-            key={exam.id}
-            title={exam.title}
-            subtitle={exam.subject + " • " + exam.examDate + " • " + exam.syllabus}
-            status="REVISE"
-            icon="calendar-outline"
+      <AnalyticsSection title="Revision Progress" subtitle="Track your revision subject-wise.">
+        {topics.map((item) => (
+          <ProgressRow
+            key={item.id}
+            label={item.title}
+            value={item.progress}
+            color={item.progress >= 70 ? COLORS.success : COLORS.warning}
           />
         ))}
 
-        <Text style={styles.sectionTitle}>Weak Topics</Text>
+        <InsightBox
+          title="Revision Tip"
+          message="Revise weak subjects first, then attempt mock tests to check improvement."
+          color={COLORS.secondary}
+        />
+      </AnalyticsSection>
 
-        {weak.length === 0 ? (
-          <SCard title="No weak topics" subtitle="Weak topics added by teacher will appear here." icon="analytics-outline" />
-        ) : (
-          weak.map((item) => (
-            <SCard
-              key={item.id}
-              title={item.topicName}
-              subtitle={item.subject + " • " + item.teacherRemark}
-              status={item.improvementStatus}
-              icon="analytics-outline"
-            />
-          ))
-        )}
-      </ScrollView>
-    </SafeAreaView>
+      <AnalyticsSection title="Subjects" subtitle="Open subjects and revise important topics.">
+        {topics.map((item) => (
+          <BaseListCard
+            key={item.id}
+            title={item.title}
+            subtitle={item.subtitle}
+            meta={"Progress: " + item.progress + "%"}
+            status="REVISION"
+            icon="book-outline"
+            color={COLORS.secondary}
+            onPress={() => navigation.navigate("WeakTopics")}
+          />
+        ))}
+      </AnalyticsSection>
+    </AnalyticsScreenWrapper>
   );
-
 }
-
-const SCard = ({ title, subtitle, status, icon = "document-text-outline", onPress, children }) => (
-  <TouchableOpacity activeOpacity={onPress ? 0.85 : 1} onPress={onPress} style={styles.card}>
-    <View style={styles.cardTop}>
-      <View style={styles.iconBox}>
-        <Ionicons name={icon} size={22} color={COLORS.primary} />
-      </View>
-
-      <View style={{ flex: 1 }}>
-        <Text style={styles.cardTitle}>{title}</Text>
-        {subtitle ? <Text style={styles.cardSub}>{subtitle}</Text> : null}
-      </View>
-
-      {status ? <Text style={styles.badge}>{status}</Text> : null}
-    </View>
-
-    {children ? <View style={{ marginTop: 12 }}>{children}</View> : null}
-  </TouchableOpacity>
-);
-
-const PickerRow = ({ label, children }) => (
-  <View style={{ marginBottom: 12 }}>
-    <Text style={styles.label}>{label}</Text>
-    <View style={styles.chipRow}>{children}</View>
-  </View>
-);
-
-const Chip = ({ title, active, onPress }) => (
-  <TouchableOpacity
-    activeOpacity={0.85}
-    onPress={onPress}
-    style={[styles.chip, active && styles.activeChip]}
-  >
-    <Text style={[styles.chipText, active && styles.activeChipText]}>{title}</Text>
-  </TouchableOpacity>
-);
-
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  content: {
-    padding: 16,
-    paddingBottom: 110,
-  },
-  hero: {
-    backgroundColor: COLORS.navy,
-    borderRadius: 24,
-    padding: 18,
-    marginBottom: 16,
-  },
-  heroTitle: {
-    color: COLORS.white,
-    fontSize: 23,
-    fontWeight: "900",
-  },
-  heroSub: {
-    color: "#CBD5E1",
-    marginTop: 6,
-    fontSize: 13,
-    lineHeight: 20,
-  },
-  sectionTitle: {
-    color: COLORS.text,
-    fontSize: 18,
-    fontWeight: "900",
-    marginBottom: 12,
-    marginTop: 8,
-  },
-  form: {
-    backgroundColor: COLORS.white,
-    borderRadius: 22,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 16,
-  },
-  card: {
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 12,
-  },
-  cardTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  iconBox: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: COLORS.primary + "15",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cardTitle: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "900",
-  },
-  cardSub: {
-    color: COLORS.muted,
-    fontSize: 12,
-    marginTop: 4,
-    lineHeight: 18,
-  },
-  badge: {
-    backgroundColor: COLORS.primary + "18",
-    color: COLORS.primary,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-    fontSize: 10,
-    fontWeight: "900",
-    overflow: "hidden",
-  },
-  row: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  half: {
-    flex: 1,
-  },
-  statGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  statCard: {
-    width: "48%",
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 12,
-  },
-  statValue: {
-    fontSize: 24,
-    color: COLORS.text,
-    fontWeight: "900",
-  },
-  statLabel: {
-    color: COLORS.muted,
-    fontSize: 12,
-    marginTop: 4,
-    fontWeight: "700",
-  },
-  label: {
-    color: COLORS.text,
-    fontSize: 13,
-    fontWeight: "900",
-    marginBottom: 8,
-  },
-  chipRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  chip: {
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.white,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  activeChip: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  chipText: {
-    color: COLORS.text,
-    fontSize: 12,
-    fontWeight: "800",
-  },
-  activeChipText: {
-    color: COLORS.white,
-  },
-});

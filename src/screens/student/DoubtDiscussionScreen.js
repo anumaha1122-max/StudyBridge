@@ -1,253 +1,97 @@
-import React, { useMemo, useState } from "react";
-import {
-  SafeAreaView,
-  ScrollView,
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import React, { useState } from "react";
+import { Text, StyleSheet } from "react-native";
 import { COLORS } from "../../utils/colors";
 import { useApp } from "../../context/AppContext";
-import { useAuth } from "../../context/AuthContext";
-import AppHeader from "../../components/AppHeader";
-import AppInput from "../../components/AppInput";
 import AppButton from "../../components/AppButton";
 import SuccessModal from "../../components/SuccessModal";
+import DoubtCard from "../../components/DoubtCard";
+import AnalyticsScreenWrapper, {
+  AnalyticsSection,
+  InsightBox,
+} from "../../components/AnalyticsScreenWrapper";
 
 export default function DoubtDiscussionScreen({ navigation, route }) {
   const app = useApp();
-  const { currentUser, logout } = useAuth();
-  const studentId = currentUser?.studentId || 1;
   const [success, setSuccess] = useState("");
-  
-  const doubts = app.doubts.filter((d) => d.studentId === studentId);
 
-  const solved = (doubtId) => {
-    app.markDoubtSolved(doubtId);
+  const doubtId = route?.params?.doubtId;
+  const doubt =
+    app.doubts?.find((item) => item.id === doubtId) ||
+    app.doubts?.[0] ||
+    null;
+
+  const markSolved = () => {
+    if (app.markDoubtSolved && doubt?.id) {
+      app.markDoubtSolved(doubt.id);
+    }
     setSuccess("Doubt marked as solved.");
   };
 
+  if (!doubt) {
+    return (
+      <AnalyticsScreenWrapper
+        navigation={navigation}
+        title="Doubt Discussion"
+        subtitle="Teacher answer details"
+        icon="help-circle-outline"
+        color={COLORS.accent}
+      >
+        <InsightBox
+          title="No Doubt Found"
+          message="Your doubt discussion will appear here."
+          color={COLORS.muted}
+        />
+      </AnalyticsScreenWrapper>
+    );
+  }
+
   return (
-    <SafeAreaView style={styles.safe}>
-      <AppHeader title="Doubt Discussion" navigation={navigation} />
+    <AnalyticsScreenWrapper
+      navigation={navigation}
+      title="Doubt Discussion"
+      subtitle="View teacher answer and mark as solved."
+      icon="help-circle-outline"
+      color={COLORS.accent}
+    >
+      <DoubtCard item={doubt} />
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
-          <Text style={styles.heroTitle}>My Doubts</Text>
-          <Text style={styles.heroSub}>View teacher answers and mark doubts as solved.</Text>
-        </View>
+      <AnalyticsSection title="Teacher Answer" subtitle="Answer or explanation from teacher.">
+        <Text style={styles.answer}>
+          {doubt.answerText || "Teacher has not answered this doubt yet."}
+        </Text>
 
-        {doubts.length === 0 ? (
-          <SCard title="No doubts" subtitle="Ask a doubt first." icon="help-circle-outline" />
-        ) : (
-          doubts.map((d) => (
-            <SCard
-              key={d.id}
-              title={d.subject}
-              subtitle={d.doubtText}
-              status={d.status}
-              icon="help-circle-outline"
-            >
-              {d.answerText ? (
-                <SCard title="Teacher Answer" subtitle={d.answerText} status="ANSWERED" icon="checkmark-circle-outline" />
-              ) : null}
+        <InsightBox
+          title="Learning Tip"
+          message="After understanding the answer, mark your doubt as solved."
+          color={COLORS.accent}
+        />
 
-              {d.status === "ANSWERED" ? (
-                <AppButton title="Mark Solved" onPress={() => solved(d.id)} />
-              ) : null}
-            </SCard>
-          ))
-        )}
+        <AppButton
+          title="Mark as Solved"
+          onPress={markSolved}
+          style={{ backgroundColor: COLORS.success }}
+        />
+      </AnalyticsSection>
 
-        <SuccessModal visible={!!success} title="Doubt" message={success} onClose={() => setSuccess("")} />
-      </ScrollView>
-    </SafeAreaView>
+      <SuccessModal
+        visible={!!success}
+        title="Doubt"
+        message={success}
+        onClose={() => setSuccess("")}
+      />
+    </AnalyticsScreenWrapper>
   );
-
 }
 
-const SCard = ({ title, subtitle, status, icon = "document-text-outline", onPress, children }) => (
-  <TouchableOpacity activeOpacity={onPress ? 0.85 : 1} onPress={onPress} style={styles.card}>
-    <View style={styles.cardTop}>
-      <View style={styles.iconBox}>
-        <Ionicons name={icon} size={22} color={COLORS.primary} />
-      </View>
-
-      <View style={{ flex: 1 }}>
-        <Text style={styles.cardTitle}>{title}</Text>
-        {subtitle ? <Text style={styles.cardSub}>{subtitle}</Text> : null}
-      </View>
-
-      {status ? <Text style={styles.badge}>{status}</Text> : null}
-    </View>
-
-    {children ? <View style={{ marginTop: 12 }}>{children}</View> : null}
-  </TouchableOpacity>
-);
-
-const PickerRow = ({ label, children }) => (
-  <View style={{ marginBottom: 12 }}>
-    <Text style={styles.label}>{label}</Text>
-    <View style={styles.chipRow}>{children}</View>
-  </View>
-);
-
-const Chip = ({ title, active, onPress }) => (
-  <TouchableOpacity
-    activeOpacity={0.85}
-    onPress={onPress}
-    style={[styles.chip, active && styles.activeChip]}
-  >
-    <Text style={[styles.chipText, active && styles.activeChipText]}>{title}</Text>
-  </TouchableOpacity>
-);
-
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
+  answer: {
     backgroundColor: COLORS.background,
-  },
-  content: {
-    padding: 16,
-    paddingBottom: 110,
-  },
-  hero: {
-    backgroundColor: COLORS.navy,
-    borderRadius: 24,
-    padding: 18,
-    marginBottom: 16,
-  },
-  heroTitle: {
-    color: COLORS.white,
-    fontSize: 23,
-    fontWeight: "900",
-  },
-  heroSub: {
-    color: "#CBD5E1",
-    marginTop: 6,
-    fontSize: 13,
-    lineHeight: 20,
-  },
-  sectionTitle: {
     color: COLORS.text,
-    fontSize: 18,
-    fontWeight: "900",
-    marginBottom: 12,
-    marginTop: 8,
-  },
-  form: {
-    backgroundColor: COLORS.white,
-    borderRadius: 22,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 16,
-  },
-  card: {
-    backgroundColor: COLORS.white,
     borderRadius: 18,
     padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 12,
-  },
-  cardTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  iconBox: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: COLORS.primary + "15",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cardTitle: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "900",
-  },
-  cardSub: {
-    color: COLORS.muted,
-    fontSize: 12,
-    marginTop: 4,
-    lineHeight: 18,
-  },
-  badge: {
-    backgroundColor: COLORS.primary + "18",
-    color: COLORS.primary,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-    fontSize: 10,
-    fontWeight: "900",
-    overflow: "hidden",
-  },
-  row: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  half: {
-    flex: 1,
-  },
-  statGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  statCard: {
-    width: "48%",
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 12,
-  },
-  statValue: {
-    fontSize: 24,
-    color: COLORS.text,
-    fontWeight: "900",
-  },
-  statLabel: {
-    color: COLORS.muted,
-    fontSize: 12,
-    marginTop: 4,
-    fontWeight: "700",
-  },
-  label: {
-    color: COLORS.text,
-    fontSize: 13,
-    fontWeight: "900",
-    marginBottom: 8,
-  },
-  chipRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  chip: {
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.white,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  activeChip: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  chipText: {
-    color: COLORS.text,
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "800",
-  },
-  activeChipText: {
-    color: COLORS.white,
+    lineHeight: 22,
+    marginBottom: 14,
   },
 });

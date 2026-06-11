@@ -1,208 +1,131 @@
 import React, { useState } from "react";
-import {
-  SafeAreaView,
-  ScrollView,
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Text, StyleSheet } from "react-native";
 import { COLORS } from "../../utils/colors";
 import { useApp } from "../../context/AppContext";
-import AppHeader from "../../components/AppHeader";
 import AppInput from "../../components/AppInput";
 import AppButton from "../../components/AppButton";
 import SuccessModal from "../../components/SuccessModal";
+import FeeCard from "../../components/FeeCard";
+import FormScreenWrapper, { FormCard, FormSectionTitle, ChipGroup, InfoBox } from "../../components/FormScreenWrapper";
 
 export default function ManageFeesScreen({ navigation }) {
   const app = useApp();
-  const [success, setSuccess] = useState("");
-  
+
   const [form, setForm] = useState({
     title: "",
+    className: "Class 10",
     amount: "",
     dueDate: "",
-    studentId: 1,
   });
 
-  const add = () => {
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const fees = app.fees || [];
+
+  const update = (key, value) => setForm({ ...form, [key]: value });
+
+  const submit = () => {
     if (!form.title || !form.amount || !form.dueDate) {
-      setSuccess("Please enter fee title, amount and due date.");
+      setError("Please fill fee title, amount and due date.");
       return;
     }
 
-    app.createFee(form);
-    setForm({ title: "", amount: "", dueDate: "", studentId: 1 });
-    setSuccess("Fee created and parent notified.");
+    if (app.createFee) {
+      app.createFee({
+        ...form,
+        status: "PENDING",
+      });
+    }
+
+    setError("");
+    setSuccess("Fee created successfully.");
+    setForm({ title: "", className: "Class 10", amount: "", dueDate: "" });
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <AppHeader title="Manage Fees" navigation={navigation} />
+    <FormScreenWrapper
+      title="Manage Fees"
+      subtitle="Create fee dues and track payments."
+      icon="card-outline"
+      color={COLORS.warning}
+      navigation={navigation}
+    >
+      <FormCard>
+        <FormSectionTitle title="Create Fee" subtitle="Generate fee due for class or students." />
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
-          <Text style={styles.heroTitle}>Fees</Text>
-          <Text style={styles.heroSub}>Create fee dues for students and parents.</Text>
-        </View>
+        {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <View style={styles.form}>
-          <AppInput label="Fee Title" value={form.title} onChangeText={(v) => setForm({ ...form, title: v })} />
-          <AppInput label="Amount" value={form.amount} onChangeText={(v) => setForm({ ...form, amount: v })} keyboardType="numeric" />
-          <AppInput label="Due Date" value={form.dueDate} onChangeText={(v) => setForm({ ...form, dueDate: v })} placeholder="2026-06-30" />
-          <AppInput label="Student ID" value={String(form.studentId)} onChangeText={(v) => setForm({ ...form, studentId: Number(v) || 1 })} keyboardType="numeric" />
-          <AppButton title="Create Fee" onPress={add} />
-        </View>
+        <Text style={styles.label}>Class</Text>
+        <ChipGroup
+          value={form.className}
+          onChange={(v) => update("className", v)}
+          options={["Class 6", "Class 7", "Class 8", "Class 9", "Class 10", "ALL"]}
+        />
 
-        <Text style={styles.sectionTitle}>Fee Records</Text>
+        <AppInput
+          label="Fee Title"
+          value={form.title}
+          onChangeText={(v) => update("title", v)}
+          placeholder="Example: Term 1 Fee"
+        />
 
-        {app.fees.map((fee) => (
-          <AdminCard
-            key={fee.id}
-            title={fee.title}
-            subtitle={"₹" + fee.amount + " • Due: " + fee.dueDate}
-            status={fee.status}
-            icon="cash-outline"
-          />
-        ))}
+        <AppInput
+          label="Amount"
+          value={form.amount}
+          onChangeText={(v) => update("amount", v)}
+          placeholder="Example: 25000"
+          keyboardType="numeric"
+        />
 
-        <SuccessModal visible={!!success} title="Fees" message={success} onClose={() => setSuccess("")} />
-      </ScrollView>
-    </SafeAreaView>
+        <AppInput
+          label="Due Date"
+          value={form.dueDate}
+          onChangeText={(v) => update("dueDate", v)}
+          placeholder="Example: 2026-06-30"
+        />
+
+        <InfoBox color={COLORS.warning} text="Parents can upload payment proof after fee creation." />
+
+        <AppButton title="Create Fee" onPress={submit} />
+      </FormCard>
+
+      <FormCard>
+        <FormSectionTitle title="Fees List" subtitle="Created fee records." />
+
+        {fees.length === 0 ? (
+          <InfoBox color={COLORS.muted} text="No fees created yet." />
+        ) : (
+          fees.slice(0, 12).map((item) => (
+            <FeeCard key={item.id} item={item} />
+          ))
+        )}
+      </FormCard>
+
+      <SuccessModal
+        visible={!!success}
+        title="Fee"
+        message={success}
+        onClose={() => setSuccess("")}
+      />
+    </FormScreenWrapper>
   );
-
 }
 
-const AdminCard = ({ title, subtitle, status, icon = "document-text-outline", children }) => (
-  <View style={styles.card}>
-    <View style={styles.cardTop}>
-      <View style={styles.iconBox}>
-        <Ionicons name={icon} size={22} color={COLORS.primary} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.cardTitle}>{title}</Text>
-        {subtitle ? <Text style={styles.cardSub}>{subtitle}</Text> : null}
-      </View>
-      {status ? <Text style={styles.badge}>{status}</Text> : null}
-    </View>
-    {children ? <View style={{ marginTop: 12 }}>{children}</View> : null}
-  </View>
-);
-
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  content: {
-    padding: 16,
-    paddingBottom: 110,
-  },
-  hero: {
-    backgroundColor: COLORS.navy,
-    borderRadius: 24,
-    padding: 18,
-    marginBottom: 16,
-  },
-  heroTitle: {
-    color: COLORS.white,
-    fontSize: 24,
-    fontWeight: "900",
-  },
-  heroSub: {
-    color: "#CBD5E1",
+  label: {
+    color: COLORS.text,
     fontSize: 13,
-    marginTop: 6,
-    lineHeight: 19,
-  },
-  sectionTitle: {
-    color: COLORS.text,
-    fontSize: 18,
     fontWeight: "900",
-    marginTop: 8,
-    marginBottom: 12,
+    marginBottom: 8,
   },
-  form: {
-    backgroundColor: COLORS.white,
-    borderRadius: 22,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 16,
-  },
-  card: {
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 12,
-  },
-  cardTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  iconBox: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: COLORS.primary + "15",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cardTitle: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "900",
-  },
-  cardSub: {
-    color: COLORS.muted,
+  error: {
+    color: COLORS.danger,
+    backgroundColor: COLORS.dangerLight,
+    padding: 12,
+    borderRadius: 16,
     fontSize: 12,
-    marginTop: 4,
-    lineHeight: 18,
-  },
-  badge: {
-    backgroundColor: COLORS.primary + "18",
-    color: COLORS.primary,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-    fontSize: 10,
-    fontWeight: "900",
-    overflow: "hidden",
-  },
-  row: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  half: {
-    flex: 1,
-  },
-  statGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  statCard: {
-    width: "48%",
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 12,
-  },
-  statValue: {
-    fontSize: 24,
-    color: COLORS.text,
-    fontWeight: "900",
-  },
-  statLabel: {
-    color: COLORS.muted,
-    fontSize: 12,
-    marginTop: 4,
-    fontWeight: "700",
+    fontWeight: "800",
+    marginBottom: 14,
   },
 });

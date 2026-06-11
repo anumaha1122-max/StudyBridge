@@ -1,273 +1,103 @@
-import React, { useMemo, useState } from "react";
-import {
-  SafeAreaView,
-  ScrollView,
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import React, { useState } from "react";
+import { View, Text, StyleSheet } from "react-native";
 import { COLORS } from "../../utils/colors";
-import { useApp } from "../../context/AppContext";
-import { useAuth } from "../../context/AuthContext";
-import AppHeader from "../../components/AppHeader";
-import AppInput from "../../components/AppInput";
 import AppButton from "../../components/AppButton";
-import SuccessModal from "../../components/SuccessModal";
+import AnalyticsScreenWrapper, {
+  AnalyticsSection,
+  InsightBox,
+} from "../../components/AnalyticsScreenWrapper";
 
-export default function MockTestScreen({ navigation, route }) {
-  const app = useApp();
-  const { currentUser, logout } = useAuth();
-  const studentId = currentUser?.studentId || 1;
-  const [success, setSuccess] = useState("");
-  
-  const [selected, setSelected] = useState({});
-  const questions = [
-    {
-      id: 1,
-      q: "What is 2 + 2?",
-      options: ["2", "4", "6"],
-      answer: "4",
-    },
-    {
-      id: 2,
-      q: "Which subject studies numbers?",
-      options: ["English", "Math", "Social"],
-      answer: "Math",
-    },
-    {
-      id: 3,
-      q: "A triangle has how many sides?",
-      options: ["2", "3", "4"],
-      answer: "3",
-    },
-  ];
+const questions = [
+  {
+    id: 1,
+    question: "What is 12 x 8?",
+    options: ["86", "96", "108", "112"],
+    answer: "96",
+  },
+  {
+    id: 2,
+    question: "Which gas do plants absorb?",
+    options: ["Oxygen", "Carbon dioxide", "Nitrogen", "Hydrogen"],
+    answer: "Carbon dioxide",
+  },
+  {
+    id: 3,
+    question: "Who wrote the national anthem of India?",
+    options: ["Tagore", "Gandhi", "Nehru", "Tilak"],
+    answer: "Tagore",
+  },
+];
 
-  const submit = () => {
-    let score = 0;
-    questions.forEach((q) => {
-      if (selected[q.id] === q.answer) score += 1;
-    });
+export default function MockTestScreen({ navigation }) {
+  const [index, setIndex] = useState(0);
+  const [score, setScore] = useState(0);
 
-    navigation.navigate("MockTestResult", {
-      score,
-      total: questions.length,
-    });
+  const item = questions[index];
+
+  const choose = (option) => {
+    const nextScore = option === item.answer ? score + 1 : score;
+
+    if (index < questions.length - 1) {
+      setScore(nextScore);
+      setIndex(index + 1);
+    } else {
+      navigation.replace("MockTestResult", {
+        score: nextScore,
+        total: questions.length,
+      });
+    }
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <AppHeader title="Mock Test" navigation={navigation} />
-
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
-          <Text style={styles.heroTitle}>Quick Mock Test</Text>
-          <Text style={styles.heroSub}>Practice questions and view your result.</Text>
+    <AnalyticsScreenWrapper
+      navigation={navigation}
+      title="Mock Test"
+      subtitle="Attempt practice questions and check your score."
+      icon="clipboard-outline"
+      color={COLORS.primary}
+    >
+      <AnalyticsSection
+        title={"Question " + (index + 1) + " of " + questions.length}
+        subtitle="Choose the correct answer."
+      >
+        <View style={styles.questionBox}>
+          <Text style={styles.question}>{item.question}</Text>
         </View>
 
-        {questions.map((q) => (
-          <SCard key={q.id} title={q.q} icon="help-circle-outline">
-            <PickerRow label="Choose Answer">
-              {q.options.map((o) => (
-                <Chip
-                  key={o}
-                  title={o}
-                  active={selected[q.id] === o}
-                  onPress={() => setSelected({ ...selected, [q.id]: o })}
-                />
-              ))}
-            </PickerRow>
-          </SCard>
+        {item.options.map((option) => (
+          <AppButton
+            key={option}
+            title={option}
+            variant="outline"
+            onPress={() => choose(option)}
+            style={styles.optionBtn}
+          />
         ))}
 
-        <AppButton title="Submit Test" onPress={submit} />
-      </ScrollView>
-    </SafeAreaView>
+        <InsightBox
+          title="Test Tip"
+          message="Read the question carefully before selecting the answer."
+          color={COLORS.primary}
+        />
+      </AnalyticsSection>
+    </AnalyticsScreenWrapper>
   );
-
 }
 
-const SCard = ({ title, subtitle, status, icon = "document-text-outline", onPress, children }) => (
-  <TouchableOpacity activeOpacity={onPress ? 0.85 : 1} onPress={onPress} style={styles.card}>
-    <View style={styles.cardTop}>
-      <View style={styles.iconBox}>
-        <Ionicons name={icon} size={22} color={COLORS.primary} />
-      </View>
-
-      <View style={{ flex: 1 }}>
-        <Text style={styles.cardTitle}>{title}</Text>
-        {subtitle ? <Text style={styles.cardSub}>{subtitle}</Text> : null}
-      </View>
-
-      {status ? <Text style={styles.badge}>{status}</Text> : null}
-    </View>
-
-    {children ? <View style={{ marginTop: 12 }}>{children}</View> : null}
-  </TouchableOpacity>
-);
-
-const PickerRow = ({ label, children }) => (
-  <View style={{ marginBottom: 12 }}>
-    <Text style={styles.label}>{label}</Text>
-    <View style={styles.chipRow}>{children}</View>
-  </View>
-);
-
-const Chip = ({ title, active, onPress }) => (
-  <TouchableOpacity
-    activeOpacity={0.85}
-    onPress={onPress}
-    style={[styles.chip, active && styles.activeChip]}
-  >
-    <Text style={[styles.chipText, active && styles.activeChipText]}>{title}</Text>
-  </TouchableOpacity>
-);
-
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
+  questionBox: {
     backgroundColor: COLORS.background,
-  },
-  content: {
-    padding: 16,
-    paddingBottom: 110,
-  },
-  hero: {
-    backgroundColor: COLORS.navy,
-    borderRadius: 24,
+    borderRadius: 20,
     padding: 18,
-    marginBottom: 16,
+    marginBottom: 14,
   },
-  heroTitle: {
-    color: COLORS.white,
-    fontSize: 23,
-    fontWeight: "900",
-  },
-  heroSub: {
-    color: "#CBD5E1",
-    marginTop: 6,
-    fontSize: 13,
-    lineHeight: 20,
-  },
-  sectionTitle: {
+  question: {
     color: COLORS.text,
     fontSize: 18,
     fontWeight: "900",
-    marginBottom: 12,
-    marginTop: 8,
+    lineHeight: 26,
   },
-  form: {
-    backgroundColor: COLORS.white,
-    borderRadius: 22,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 16,
-  },
-  card: {
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 12,
-  },
-  cardTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  iconBox: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: COLORS.primary + "15",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cardTitle: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "900",
-  },
-  cardSub: {
-    color: COLORS.muted,
-    fontSize: 12,
-    marginTop: 4,
-    lineHeight: 18,
-  },
-  badge: {
-    backgroundColor: COLORS.primary + "18",
-    color: COLORS.primary,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-    fontSize: 10,
-    fontWeight: "900",
-    overflow: "hidden",
-  },
-  row: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  half: {
-    flex: 1,
-  },
-  statGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  statCard: {
-    width: "48%",
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 12,
-  },
-  statValue: {
-    fontSize: 24,
-    color: COLORS.text,
-    fontWeight: "900",
-  },
-  statLabel: {
-    color: COLORS.muted,
-    fontSize: 12,
-    marginTop: 4,
-    fontWeight: "700",
-  },
-  label: {
-    color: COLORS.text,
-    fontSize: 13,
-    fontWeight: "900",
-    marginBottom: 8,
-  },
-  chipRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  chip: {
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.white,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  activeChip: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  chipText: {
-    color: COLORS.text,
-    fontSize: 12,
-    fontWeight: "800",
-  },
-  activeChipText: {
-    color: COLORS.white,
+  optionBtn: {
+    marginBottom: 10,
   },
 });

@@ -1,220 +1,172 @@
 import React, { useState } from "react";
-import {
-  SafeAreaView,
-  ScrollView,
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Text, StyleSheet } from "react-native";
 import { COLORS } from "../../utils/colors";
 import { useApp } from "../../context/AppContext";
-import AppHeader from "../../components/AppHeader";
 import AppInput from "../../components/AppInput";
 import AppButton from "../../components/AppButton";
 import SuccessModal from "../../components/SuccessModal";
+import BaseListCard from "../../components/BaseListCard";
+import FormScreenWrapper, {
+  FormCard,
+  FormSectionTitle,
+  ChipGroup,
+  InfoBox,
+} from "../../components/FormScreenWrapper";
 
 export default function ManageStudentsScreen({ navigation }) {
   const app = useApp();
-  const [success, setSuccess] = useState("");
-  
+
   const [form, setForm] = useState({
     name: "",
-    className: "10th A",
-    rollNumber: "",
-    bloodGroup: "",
-    emergencyContact: "",
+    email: "",
+    phone: "",
+    className: "Class 10",
+    parentName: "",
+    parentPhone: "",
   });
 
-  const add = () => {
-    if (!form.name || !form.rollNumber) {
-      setSuccess("Please enter student name and roll number.");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const students = app.students || [];
+
+  const update = (key, value) => setForm({ ...form, [key]: value });
+
+  const submit = () => {
+    if (!form.name || !form.email || !form.phone) {
+      setError("Please fill student name, email and phone.");
       return;
     }
 
     if (app.addStudent) {
-      app.addStudent(form);
+      app.addStudent({
+        ...form,
+        status: "ACTIVE",
+      });
     }
 
+    setError("");
+    setSuccess("Student added successfully.");
     setForm({
       name: "",
-      className: "10th A",
-      rollNumber: "",
-      bloodGroup: "",
-      emergencyContact: "",
+      email: "",
+      phone: "",
+      className: "Class 10",
+      parentName: "",
+      parentPhone: "",
     });
-
-    setSuccess("Student added successfully.");
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <AppHeader title="Manage Students" navigation={navigation} />
+    <FormScreenWrapper
+      title="Manage Students"
+      subtitle="Add and manage student profiles."
+      icon="people-outline"
+      color={COLORS.primary}
+      navigation={navigation}
+    >
+      <FormCard>
+        <FormSectionTitle
+          title="Add Student"
+          subtitle="Create student profile with parent contact details."
+        />
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
-          <Text style={styles.heroTitle}>Students</Text>
-          <Text style={styles.heroSub}>Add and manage school students.</Text>
-        </View>
+        {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <View style={styles.form}>
-          <AppInput label="Student Name" value={form.name} onChangeText={(v) => setForm({ ...form, name: v })} />
-          <AppInput label="Class" value={form.className} onChangeText={(v) => setForm({ ...form, className: v })} />
-          <AppInput label="Roll Number" value={form.rollNumber} onChangeText={(v) => setForm({ ...form, rollNumber: v })} />
-          <AppInput label="Blood Group" value={form.bloodGroup} onChangeText={(v) => setForm({ ...form, bloodGroup: v })} />
-          <AppInput label="Emergency Contact" value={form.emergencyContact} onChangeText={(v) => setForm({ ...form, emergencyContact: v })} />
-          <AppButton title="Add Student" onPress={add} />
-        </View>
+        <Text style={styles.label}>Class</Text>
+        <ChipGroup
+          value={form.className}
+          onChange={(v) => update("className", v)}
+          options={["Class 6", "Class 7", "Class 8", "Class 9", "Class 10"]}
+        />
 
-        <Text style={styles.sectionTitle}>Student List</Text>
+        <AppInput
+          label="Student Name"
+          value={form.name}
+          onChangeText={(v) => update("name", v)}
+          placeholder="Enter student name"
+        />
 
-        {app.students.map((student) => (
-          <AdminCard
-            key={student.id}
-            title={student.name}
-            subtitle={student.className + " • Roll: " + student.rollNumber + " • Attendance: " + (student.attendancePercentage || 0) + "%"}
-            status="ACTIVE"
-            icon="person-outline"
-          />
-        ))}
+        <AppInput
+          label="Student Email"
+          value={form.email}
+          onChangeText={(v) => update("email", v)}
+          placeholder="Enter email"
+          keyboardType="email-address"
+        />
 
-        <SuccessModal visible={!!success} title="Students" message={success} onClose={() => setSuccess("")} />
-      </ScrollView>
-    </SafeAreaView>
+        <AppInput
+          label="Student Phone"
+          value={form.phone}
+          onChangeText={(v) => update("phone", v)}
+          placeholder="Enter phone"
+          keyboardType="phone-pad"
+        />
+
+        <AppInput
+          label="Parent Name"
+          value={form.parentName}
+          onChangeText={(v) => update("parentName", v)}
+          placeholder="Enter parent name"
+        />
+
+        <AppInput
+          label="Parent Phone"
+          value={form.parentPhone}
+          onChangeText={(v) => update("parentPhone", v)}
+          placeholder="Enter parent phone"
+          keyboardType="phone-pad"
+        />
+
+        <InfoBox text="Student login and parent linking can be connected with backend later." />
+
+        <AppButton title="Add Student" onPress={submit} />
+      </FormCard>
+
+      <FormCard>
+        <FormSectionTitle title="Students List" subtitle="Recently added students." />
+
+        {students.length === 0 ? (
+          <InfoBox color={COLORS.muted} text="No students added yet." />
+        ) : (
+          students.slice(0, 12).map((item) => (
+            <BaseListCard
+              key={item.id}
+              title={item.name || "Student"}
+              subtitle={(item.className || "Class") + " • " + (item.phone || "No phone")}
+              meta={item.email || ""}
+              status={item.status || "ACTIVE"}
+              icon="person-outline"
+              color={COLORS.primary}
+            />
+          ))
+        )}
+      </FormCard>
+
+      <SuccessModal
+        visible={!!success}
+        title="Student"
+        message={success}
+        onClose={() => setSuccess("")}
+      />
+    </FormScreenWrapper>
   );
-
 }
 
-const AdminCard = ({ title, subtitle, status, icon = "document-text-outline", children }) => (
-  <View style={styles.card}>
-    <View style={styles.cardTop}>
-      <View style={styles.iconBox}>
-        <Ionicons name={icon} size={22} color={COLORS.primary} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.cardTitle}>{title}</Text>
-        {subtitle ? <Text style={styles.cardSub}>{subtitle}</Text> : null}
-      </View>
-      {status ? <Text style={styles.badge}>{status}</Text> : null}
-    </View>
-    {children ? <View style={{ marginTop: 12 }}>{children}</View> : null}
-  </View>
-);
-
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  content: {
-    padding: 16,
-    paddingBottom: 110,
-  },
-  hero: {
-    backgroundColor: COLORS.navy,
-    borderRadius: 24,
-    padding: 18,
-    marginBottom: 16,
-  },
-  heroTitle: {
-    color: COLORS.white,
-    fontSize: 24,
-    fontWeight: "900",
-  },
-  heroSub: {
-    color: "#CBD5E1",
+  label: {
+    color: COLORS.text,
     fontSize: 13,
-    marginTop: 6,
-    lineHeight: 19,
-  },
-  sectionTitle: {
-    color: COLORS.text,
-    fontSize: 18,
     fontWeight: "900",
-    marginTop: 8,
-    marginBottom: 12,
+    marginBottom: 8,
   },
-  form: {
-    backgroundColor: COLORS.white,
-    borderRadius: 22,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 16,
-  },
-  card: {
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 12,
-  },
-  cardTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  iconBox: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: COLORS.primary + "15",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cardTitle: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "900",
-  },
-  cardSub: {
-    color: COLORS.muted,
+  error: {
+    color: COLORS.danger,
+    backgroundColor: COLORS.dangerLight,
+    padding: 12,
+    borderRadius: 16,
     fontSize: 12,
-    marginTop: 4,
-    lineHeight: 18,
-  },
-  badge: {
-    backgroundColor: COLORS.primary + "18",
-    color: COLORS.primary,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-    fontSize: 10,
-    fontWeight: "900",
-    overflow: "hidden",
-  },
-  row: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  half: {
-    flex: 1,
-  },
-  statGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  statCard: {
-    width: "48%",
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 12,
-  },
-  statValue: {
-    fontSize: 24,
-    color: COLORS.text,
-    fontWeight: "900",
-  },
-  statLabel: {
-    color: COLORS.muted,
-    fontSize: 12,
-    marginTop: 4,
-    fontWeight: "700",
+    fontWeight: "800",
+    marginBottom: 14,
   },
 });

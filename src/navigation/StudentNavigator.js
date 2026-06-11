@@ -10,7 +10,6 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../utils/colors";
 
-
 import StudentDashboardScreen from "../screens/student/StudentDashboardScreen";
 import StudentHomeworkScreen from "../screens/student/StudentHomeworkScreen";
 import HomeworkDetailsScreen from "../screens/student/HomeworkDetailsScreen";
@@ -41,21 +40,13 @@ import StudentAchievementsScreen from "../screens/student/StudentAchievementsScr
 import StudentFeesScreen from "../screens/student/StudentFeesScreen";
 import StudentDigitalIdScreen from "../screens/student/StudentDigitalIdScreen";
 
-
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
 function TabIcon({ focused, icon, label, color }) {
   return (
     <View style={[styles.tabItem, focused && styles.activeTabItem]}>
-      <View
-        style={[
-          styles.iconBubble,
-          focused && {
-            backgroundColor: color,
-          },
-        ]}
-      >
+      <View style={[styles.iconBubble, focused && { backgroundColor: color }]}>
         <Ionicons
           name={icon}
           size={focused ? 21 : 20}
@@ -65,12 +56,7 @@ function TabIcon({ focused, icon, label, color }) {
 
       <Text
         numberOfLines={1}
-        style={[
-          styles.tabLabel,
-          focused && {
-            color,
-          },
-        ]}
+        style={[styles.tabLabel, focused && { color }]}
       >
         {label}
       </Text>
@@ -89,19 +75,13 @@ function StudentNavigatorTabs() {
         tabBarItemStyle: styles.tabBarItem,
       }}
     >
-
       <Tab.Screen
         name="StudentDashboard"
         component={StudentDashboardScreen}
         options={{
           title: "Home",
           tabBarIcon: ({ focused }) => (
-            <TabIcon
-              focused={focused}
-              icon="grid-outline"
-              label="Home"
-              color="#4F46E5"
-            />
+            <TabIcon focused={focused} icon="grid-outline" label="Home" color="#4F46E5" />
           ),
         }}
       />
@@ -112,12 +92,7 @@ function StudentNavigatorTabs() {
         options={{
           title: "Work",
           tabBarIcon: ({ focused }) => (
-            <TabIcon
-              focused={focused}
-              icon="book-outline"
-              label="Work"
-              color="#F59E0B"
-            />
+            <TabIcon focused={focused} icon="book-outline" label="Work" color="#F59E0B" />
           ),
         }}
       />
@@ -128,12 +103,7 @@ function StudentNavigatorTabs() {
         options={{
           title: "Exams",
           tabBarIcon: ({ focused }) => (
-            <TabIcon
-              focused={focused}
-              icon="calendar-outline"
-              label="Exams"
-              color="#06B6D4"
-            />
+            <TabIcon focused={focused} icon="calendar-outline" label="Exams" color="#06B6D4" />
           ),
         }}
       />
@@ -144,12 +114,7 @@ function StudentNavigatorTabs() {
         options={{
           title: "Progress",
           tabBarIcon: ({ focused }) => (
-            <TabIcon
-              focused={focused}
-              icon="trending-up-outline"
-              label="Progress"
-              color="#7C3AED"
-            />
+            <TabIcon focused={focused} icon="trending-up-outline" label="Progress" color="#7C3AED" />
           ),
         }}
       />
@@ -160,12 +125,7 @@ function StudentNavigatorTabs() {
         options={{
           title: "Profile",
           tabBarIcon: ({ focused }) => (
-            <TabIcon
-              focused={focused}
-              icon="person-outline"
-              label="Profile"
-              color="#16A34A"
-            />
+            <TabIcon focused={focused} icon="person-outline" label="Profile" color="#16A34A" />
           ),
         }}
       />
@@ -208,6 +168,12 @@ export default function StudentNavigator() {
       <Stack.Screen name="StudentFees" component={StudentFeesScreen} />
       <Stack.Screen name="StudentDigitalId" component={StudentDigitalIdScreen} />
 
+      {/* Direct aliases to stop "not handled by navigator" errors */}
+      <Stack.Screen name="StudentHomeworkDirect" component={StudentHomeworkScreen} />
+      <Stack.Screen name="StudentDashboardDirect" component={StudentDashboardScreen} />
+      <Stack.Screen name="ExamPlannerDirect" component={ExamPlannerScreen} />
+      <Stack.Screen name="StudentProgressDirect" component={StudentProgressScreen} />
+      <Stack.Screen name="StudentProfileDirect" component={StudentProfileScreen} />
     </Stack.Navigator>
   );
 }

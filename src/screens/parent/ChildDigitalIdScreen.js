@@ -1,259 +1,157 @@
-import React, { useState } from "react";
-import {
-  SafeAreaView,
-  ScrollView,
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-} from "react-native";
+import React from "react";
+import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../../utils/colors";
-import { useApp } from "../../context/AppContext";
 import { useAuth } from "../../context/AuthContext";
-import AppHeader from "../../components/AppHeader";
-import AppInput from "../../components/AppInput";
-import AppButton from "../../components/AppButton";
-import SuccessModal from "../../components/SuccessModal";
+import { useApp } from "../../context/AppContext";
+import AnalyticsScreenWrapper, {
+  AnalyticsSection,
+  InsightBox,
+} from "../../components/AnalyticsScreenWrapper";
 
-export default function ChildDigitalIdScreen({ navigation, route }) {
+export default function ChildDigitalIdScreen({ navigation }) {
+  const { currentUser } = useAuth();
   const app = useApp();
-  const { currentUser, logout } = useAuth();
 
-  const parentId = currentUser?.parentId || 1;
   const childId = currentUser?.childId || 1;
-
-  const parent = app.parents.find((p) => p.id === parentId);
-  const child = app.students.find((s) => s.id === childId) || app.students[0];
-
-  const [success, setSuccess] = useState("");
-
-  
-  const cards = app.digitalIds.filter((c) => c.studentId === child?.id || c.userId === child?.id);
+  const child =
+    app.students?.find((item) => item.id === childId) ||
+    app.students?.[0] ||
+    {};
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <AppHeader title="Child Digital ID" navigation={navigation} />
+    <AnalyticsScreenWrapper
+      navigation={navigation}
+      title="Child Digital ID"
+      subtitle="Smart school identity card for your child."
+      icon="id-card-outline"
+      color={COLORS.accent}
+    >
+      <View style={styles.idCard}>
+        <View style={styles.top}>
+          <View style={styles.logo}>
+            <Ionicons name="school-outline" size={34} color={COLORS.white} />
+          </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
-          <Text style={styles.heroTitle}>Digital ID Card</Text>
-          <Text style={styles.heroSub}>Student ID card and QR placeholder.</Text>
+          <View>
+            <Text style={styles.school}>StudyBridge School</Text>
+            <Text style={styles.cardType}>CHILD DIGITAL ID</Text>
+          </View>
         </View>
 
-        {cards.length === 0 ? (
-          <PCard
-            title={child?.name || "Student"}
-            subtitle={"Class: " + child?.className + " • Roll: " + child?.rollNumber}
-            status="ID PENDING"
-            icon="id-card-outline"
-          />
-        ) : (
-          cards.map((card) => (
-            <PCard
-              key={card.id}
-              title={card.name}
-              subtitle={
-                "Class: " +
-                card.className +
-                " • Roll: " +
-                card.rollNumber +
-                " • Card: " +
-                card.cardNumber +
-                " • QR: " +
-                card.qrValue
-              }
-              status={card.userRole}
-              icon="id-card-outline"
-            />
-          ))
-        )}
-      </ScrollView>
-    </SafeAreaView>
-  );
+        <View style={styles.avatar}>
+          <Ionicons name="person" size={58} color={COLORS.white} />
+        </View>
 
+        <Text style={styles.name}>{child?.name || currentUser?.childName || "Student Name"}</Text>
+        <Text style={styles.role}>Student</Text>
+
+        <View style={styles.infoGrid}>
+          <Info label="Student ID" value={"STU-" + String(child?.id || childId).padStart(4, "0")} />
+          <Info label="Class" value={child?.className || currentUser?.childClass || "Class 10"} />
+          <Info label="Parent" value={currentUser?.name || "Parent"} />
+          <Info label="Phone" value={currentUser?.phone || child?.phone || "Not added"} />
+        </View>
+      </View>
+
+      <AnalyticsSection title="ID Instructions" subtitle="Use this card for school verification.">
+        <InsightBox
+          title="Digital ID"
+          message="This parent view shows the child's digital school identity card. QR verification can be connected later."
+          color={COLORS.accent}
+        />
+      </AnalyticsSection>
+    </AnalyticsScreenWrapper>
+  );
 }
 
-const PCard = ({ title, subtitle, status, icon = "document-text-outline", onPress, children }) => (
-  <TouchableOpacity activeOpacity={onPress ? 0.85 : 1} onPress={onPress} style={styles.card}>
-    <View style={styles.cardTop}>
-      <View style={styles.iconBox}>
-        <Ionicons name={icon} size={22} color={COLORS.primary} />
-      </View>
-
-      <View style={{ flex: 1 }}>
-        <Text style={styles.cardTitle}>{title}</Text>
-        {subtitle ? <Text style={styles.cardSub}>{subtitle}</Text> : null}
-      </View>
-
-      {status ? <Text style={styles.badge}>{status}</Text> : null}
+function Info({ label, value }) {
+  return (
+    <View style={styles.infoBox}>
+      <Text style={styles.infoLabel}>{label}</Text>
+      <Text numberOfLines={1} style={styles.infoValue}>{value}</Text>
     </View>
-
-    {children ? <View style={{ marginTop: 12 }}>{children}</View> : null}
-  </TouchableOpacity>
-);
-
-const PickerRow = ({ label, children }) => (
-  <View style={{ marginBottom: 12 }}>
-    <Text style={styles.label}>{label}</Text>
-    <View style={styles.chipRow}>{children}</View>
-  </View>
-);
-
-const Chip = ({ title, active, onPress }) => (
-  <TouchableOpacity
-    activeOpacity={0.85}
-    onPress={onPress}
-    style={[styles.chip, active && styles.activeChip]}
-  >
-    <Text style={[styles.chipText, active && styles.activeChipText]}>{title}</Text>
-  </TouchableOpacity>
-);
+  );
+}
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  content: {
-    padding: 16,
-    paddingBottom: 110,
-  },
-  hero: {
+  idCard: {
     backgroundColor: COLORS.navy,
-    borderRadius: 24,
-    padding: 18,
+    borderRadius: 34,
+    padding: 22,
+    overflow: "hidden",
     marginBottom: 16,
   },
-  heroTitle: {
-    color: COLORS.white,
-    fontSize: 23,
-    fontWeight: "900",
-  },
-  heroSub: {
-    color: "#CBD5E1",
-    marginTop: 6,
-    fontSize: 13,
-    lineHeight: 20,
-  },
-  sectionTitle: {
-    color: COLORS.text,
-    fontSize: 18,
-    fontWeight: "900",
-    marginBottom: 12,
-    marginTop: 8,
-  },
-  form: {
-    backgroundColor: COLORS.white,
-    borderRadius: 22,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 16,
-  },
-  card: {
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 12,
-  },
-  cardTop: {
+  top: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
   },
-  iconBox: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: COLORS.primary + "15",
+  logo: {
+    width: 58,
+    height: 58,
+    borderRadius: 20,
+    backgroundColor: COLORS.accent,
     alignItems: "center",
     justifyContent: "center",
   },
-  cardTitle: {
-    color: COLORS.text,
-    fontSize: 15,
+  school: {
+    color: COLORS.white,
+    fontSize: 17,
     fontWeight: "900",
   },
-  cardSub: {
-    color: COLORS.muted,
-    fontSize: 12,
-    marginTop: 4,
-    lineHeight: 18,
-  },
-  badge: {
-    backgroundColor: COLORS.primary + "18",
-    color: COLORS.primary,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-    fontSize: 10,
+  cardType: {
+    color: "#CBD5E1",
+    fontSize: 11,
     fontWeight: "900",
-    overflow: "hidden",
+    marginTop: 3,
   },
-  row: {
-    flexDirection: "row",
-    gap: 10,
+  avatar: {
+    width: 108,
+    height: 108,
+    borderRadius: 38,
+    backgroundColor: COLORS.accent,
+    alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "center",
+    marginTop: 28,
+    borderWidth: 3,
+    borderColor: "rgba(255,255,255,0.22)",
   },
-  half: {
-    flex: 1,
-  },
-  statGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  statCard: {
-    width: "48%",
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 12,
-  },
-  statValue: {
-    fontSize: 24,
-    color: COLORS.text,
+  name: {
+    color: COLORS.white,
+    fontSize: 26,
     fontWeight: "900",
+    textAlign: "center",
+    marginTop: 16,
   },
-  statLabel: {
-    color: COLORS.muted,
-    fontSize: 12,
-    marginTop: 4,
-    fontWeight: "700",
-  },
-  label: {
-    color: COLORS.text,
+  role: {
+    color: "#CBD5E1",
     fontSize: 13,
     fontWeight: "900",
-    marginBottom: 8,
+    textAlign: "center",
+    marginTop: 5,
+    marginBottom: 20,
   },
-  chipRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
+  infoGrid: {
+    backgroundColor: "rgba(255,255,255,0.09)",
+    borderRadius: 24,
+    padding: 14,
   },
-  chip: {
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.white,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+  infoBox: {
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.10)",
   },
-  activeChip: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
+  infoLabel: {
+    color: "#CBD5E1",
+    fontSize: 11,
+    fontWeight: "900",
   },
-  chipText: {
-    color: COLORS.text,
-    fontSize: 12,
-    fontWeight: "800",
-  },
-  activeChipText: {
+  infoValue: {
     color: COLORS.white,
+    fontSize: 14,
+    fontWeight: "900",
+    marginTop: 4,
   },
 });
